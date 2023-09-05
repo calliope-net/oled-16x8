@@ -212,7 +212,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
         for (let j = 0; j < pText.length; j++) {
 
-            bu.write(offset, getPixel8Byte(pText.charCodeAt(j)))
+            bu.write(offset, getPixel8ByteEEPROM(pText.charCodeAt(j)))
             offset += 8
             /* font = basicFont[pText.charCodeAt(j) - 32]
 
@@ -484,7 +484,27 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         Buffer.create(128), Buffer.create(128)
     ] */
 
-    function getPixel8Byte(pCharCode: number) {
+    function getPixel8ByteEEPROM(pCharCode: number) {
+        let startAdr = 0xF800
+        switch (pCharCode & 0xF0) {
+            case 0x20: { startAdr = 0xF900; break; } // 16 string-Elemente je 8 Byte = 128
+            case 0x30: { startAdr = 0xF980; break; }
+            case 0x40: { startAdr = 0xFA00; break; }
+            case 0x50: { startAdr = 0xFA80; break; }
+            case 0x60: { startAdr = 0xFB00; break; }
+            case 0x70: { startAdr = 0xFB80; break; }
+        }
+        let offset = (pCharCode & 0x0F) * 8 // max 15*8=120
+
+        let bu = Buffer.create(2)
+        bu.setNumber(NumberFormat.UInt16BE, 0, startAdr + offset)
+        oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(eADDR_EEPROM.EEPROM, bu, true)
+
+        return pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8)
+
+    }
+
+    function getPixel8Byte_(pCharCode: number) {
         let zArray: string[]
         switch (pCharCode & 0xF0) {
             case 0x20: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
@@ -514,7 +534,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     //% block="i2c %pADDR EEPROM schreiben %x4 %x3 %x2 Zeichencodes %pzArray"
     //% inlineInputMode=inline
     export function writeEEPROM(pADDR: eADDR_EEPROM, x4: H4, x3: H3, x2: H2, pzArray: ezArray) {
-        let zArray: string[]=[]
+        let zArray: string[] = []
         switch (pzArray) {
             case ezArray.x20_x2F: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
             case ezArray.x30_x3F: { zArray = basicFontx30; break; }
@@ -533,9 +553,9 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
             }
             oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         }
-    } 
+    }
 
-    export enum eADDR_EEPROM {  EEPROM = 0x50}
+    export enum eADDR_EEPROM { EEPROM = 0x50 }
 
     export enum H2 {
         x00 = 0x00, /*x10 = 0x10, x20 = 0x20, x30 = 0x30, x40 = 0x40, x50 = 0x50, x60 = 0x60, x70 = 0x70,*/

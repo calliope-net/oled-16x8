@@ -19,7 +19,18 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         x40_Data = 0x40  // im selben Buffer folgen nur Display-Data Bytes ohne CONTROL dazwischen
     }
 
-    export enum eCommand { Display_OFF = 0xAE, Display_ON = 0xAF, }
+    export enum eCommand {
+        A0_SEGMENT_REMAP = 0xA0, // column address 0 is mapped to SEG0 (RESET) // using 0xA0 will flip screen
+        A1_SEGMENT_REMAP = 0xA1, // column address 127 is mapped to SEG0
+        A4_ENTITE_DISPLAY_ON = 0xA4,
+        A5_RAM_CONTENT_DISPLAY = 0xA5,
+        A6_NORMAL_DISPLAY = 0xA6, // invert Hintergrund schwarz
+        A7_INVERT_DISPLAY = 0xA7, // invert Hintergrund leuchtet
+        AE_DISPLAY_OFF = 0xAE,
+        AF_DISPLAY_ON = 0xAF,
+        C0_COM_SCAN_INC = 0xC0, // COM Output Scan Direction
+        C8_COM_SCAN_DEC = 0xC8, // remapped mode Scan from COM[N-1] to COM0
+    }
 
 
     /* function write2Byte(pADDR: eADDR, b0: number, b1: number) {
@@ -28,13 +39,13 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         bu.setUint8(1, b0)
         bu.setUint8(2, b1)
         pins.i2cWriteBuffer(pADDR, bu)
-    }
-    function write1Byte(pADDR: eADDR, b0: number) {
+    }*/
+    function writeCommandx00(pADDR: eADDR, pCommand: eCommand) {
         let bu = pins.createBuffer(2)
         bu.setUint8(0, 0x00)
-        bu.setUint8(1, b0)
+        bu.setUint8(1, pCommand)
         pins.i2cWriteBuffer(pADDR, bu)
-    } */
+    }
 
     // ========== group="OLED 16x8 Display initialisieren"
 
@@ -213,11 +224,11 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     //% group="OLED 16x8 Display"
     //% block="i2c %pADDR Display löschen || von Zeile %vonZeile bis Zeile %bisZeile mit Zeichencode %charcode" weight=2
     //% pADDR.shadow="oledssd1315_eADDR"
-    //% zeichen.min=0 zeichen.max=255 zeichen.defl=0
     //% vonZeile.min=0 vonZeile.max=7 vonZeile.defl=0
     //% bisZeile.min=0 bisZeile.max=7 bisZeile.defl=7
+    //% charcode.min=0 charcode.max=255 charcode.defl=0
     //% inlineInputMode=inline
-    export function clearScreen(pADDR: eADDR, vonZeile: number, bisZeile: number, charcode: number) {
+    export function clearScreen(pADDR: number, vonZeile?: number, bisZeile?: number, charcode?: number) {
         if (between(vonZeile, 0, 7) && between(bisZeile, 0, 7)) {
             let bu = Buffer.create(135)
             let offset = setCursorBuffer6(bu, 0, 0, 0)
@@ -234,25 +245,66 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         }
     }
 
+    export enum eDisplayCommand {
+        //% block="AF AE Set Display ON/OFF"
+        ON,
+        //% block="A7 A6 Set Normal/Inverse Display"
+        INVERS,
+        //% block="A0 A1 Set Segment Remap"
+        FLIP,
+        //% block="C0 C8 Set COM Output Scan Direction"
+        REMAP,
+        //% block="A4 A5 Entire Display"
+        ENTIRE_ON
+    }
+    //% block="i2c %pADDR Display %pDisplayCommand %pON" weight=1
+    //% pADDR.shadow="oledssd1315_eADDR"
+    //% pON.shadow="toggleOnOff"
+    export function displayCommand(pADDR: number, pDisplayCommand: eDisplayCommand, pON: boolean) {
+        let bu = pins.createBuffer(2)
+        bu.setUint8(0, eCONTROL.x00_xCom)
+        switch (pDisplayCommand) {
+            case eDisplayCommand.ON: { bu.setUint8(1, (pON ? eCommand.AF_DISPLAY_ON : eCommand.AE_DISPLAY_OFF)); break; }
+            case eDisplayCommand.INVERS: { bu.setUint8(1, (pON ? eCommand.A7_INVERT_DISPLAY : eCommand.A6_NORMAL_DISPLAY)); break; }
+            case eDisplayCommand.ENTIRE_ON: { bu.setUint8(1, (pON ? eCommand.A4_ENTITE_DISPLAY_ON : eCommand.A5_RAM_CONTENT_DISPLAY)); break; }
+            case eDisplayCommand.FLIP: {
+                //bu = pins.createBuffer(3)
+                //bu.setUint8(0, eCONTROL.x00_xCom)
+                //bu.setUint8(1, eCommand.C0_COM_SCAN_INC)//(pON ? eCommand.A0_SEGMENT_REMAP : eCommand.A1_SEGMENT_REMAP))
+                bu.setUint8(1, (pON ? eCommand.A0_SEGMENT_REMAP : eCommand.A1_SEGMENT_REMAP))
+                break
+            }
+            case eDisplayCommand.REMAP: { bu.setUint8(1, (pON ? eCommand.C0_COM_SCAN_INC : eCommand.C8_COM_SCAN_DEC)); break; }
+
+        }
+        oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+    }
 
 
-    /* function set_pos(pADDR: eADDR, col: number = 0, page: number = 0) {
-        //writeOneByte(0xb0 | page) // page number
-        //writeOneByte(0x00 | (col % 16)) // lower start column address 0x00-0x0F 4 Bit
-        //writeOneByte(0x10 | (col >> 4)) // upper start column address 0x10-0x17 3 Bit 
-        let bu = Buffer.create(4)
-        bu.setUint8(0, 0x00) // CONTROL mehrere command
-        bu.setUint8(1, 0xB0 | (page & 0x07)) // page number 0-7 B0-B7
-        bu.setUint8(2, 0x00 | (col & 0x0F))// (col % 16)) // lower start column address 0x00-0x0F 4 Bit
-        bu.setUint8(3, 0x10 | (col >> 4) & 0x07) // upper start column address 0x10-0x17 3 Bit
-        pins.i2cWriteBuffer(pADDR, bu)
-    } */
+    let flipped: boolean
+    /**
+     * Dreht den Displayinhalt auf den Kopf.
+     */
+    //% blockId=oledssd1306_flip_screen advanced=true
+    //% block="drehe Display"
+    export function flipScreen() {
+        cmd(eCommand.AE_DISPLAY_OFF);
+        cmd(eCommand.C0_COM_SCAN_INC);
+        if (flipped) {
+            cmd(0xA1)
+        } else {
+            cmd(0xA0);
+        }
+        cmd(eCommand.AF_DISPLAY_ON);
+    }
+
+
 
     /**
        * Setzt das Display zurück und löscht es.
        * Sollte beim Start des Programms verwendet werden.
        */
-    //% block="init Display"
+    //% block="init Display" advanced=true
     export function inDisplay(): void {
         cmd(0xAE);  // Set display OFF		
         cmd(0xD5);  // Set Display Clock Divide Ratio / OSC Frequency 0xD4
@@ -287,7 +339,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
      */
     //% block="lösche Display"
     function clDisplay() {
-        cmd(DISPLAY_OFF);   //display off
+        cmd(eCommand.AE_DISPLAY_OFF);   //display off
         for (let j = 0; j < 8; j++) {
             setTextXY(j, 0);
             {
@@ -299,11 +351,11 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         }
         //clearPage(eADDR.OLED_16x8, 4)
         //clearPage(eADDR.OLED_16x8, 6)
-        cmd(DISPLAY_ON);    //display on
+        cmd(eCommand.AF_DISPLAY_ON);    //display on
         setTextXY(0, 0);
     }
 
-  
+
 
 
     /**
@@ -312,7 +364,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     //% row.min=0 row.max=7 
     //% column.min=0 column.max=15
     //% block="setze Cursor auf Zeile %row| und Spalte %column"
-    export function setTextXY(row: number, column: number) {
+    function setTextXY(row: number, column: number) {
         let r = row;
         let c = column;
         if (row < 0) { r = 0 }
@@ -382,7 +434,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     }
 
     //% block="schreibe %s|auf das Display"
-    export function writeString(s: string) {
+    function writeString(s: string) {
         for (let c of s) {
             putChar(c);
         }
@@ -403,17 +455,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     //% advanced=true
     //% block="sende Befehl %c|an Display"
     function cmd(c: number) {
-        //pins.i2cWriteNumber(0x3c, c, NumberFormat.UInt16BE);
         pins.i2cWriteNumber(0x3c, c & 0xFF, NumberFormat.UInt16BE);
-
-        /* let bu = pins.createBuffer(1)
-        bu.setUint8(0, c) */
-
-        /* let bu = pins.createBuffer(2)
-        bu.setUint8(0, 0)
-        bu.setUint8(1, c) */
-
-        /* pins.i2cWriteBuffer(0x3c, bu) */
     }
 
     function writeData(n: number) {
@@ -429,36 +471,11 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         pins.i2cWriteBuffer(0x3c, bu)
     }
 
-    let flipped = false;
+    //let flipped = false;
 
-    const DISPLAY_OFF = 0xAE;
-    const DISPLAY_ON = 0xAF;
-    /*    const SET_DISPLAY_CLOCK_DIV = 0xD5;
-       const SET_MULTIPLEX = 0xA8;
-       const SET_DISPLAY_OFFSET = 0xD3;
-       const SET_START_LINE = 0x00;
-       const CHARGE_PUMP = 0x8D;
-       const EXTERNAL_VCC = false;
-       const MEMORY_MODE = 0x20;
-       const SEG_REMAP = 0xA1; // using 0xA0 will flip screen
-       const COM_SCAN_DEC = 0xC8;
-       const COM_SCAN_INC = 0xC0;
-       const SET_COM_PINS = 0xDA;
-       const SET_CONTRAST = 0x81;
-       const SET_PRECHARGE = 0xd9;
-       const SET_VCOM_DETECT = 0xDB;
-       const DISPLAY_ALL_ON_RESUME = 0xA4;
-       const NORMAL_DISPLAY = 0xA6;
-       const COLUMN_ADDR = 0x21;
-       const PAGE_ADDR = 0x22;
-       const INVERT_DISPLAY = 0xA7;
-       const ACTIVATE_SCROLL = 0x2F;
-       const DEACTIVATE_SCROLL = 0x2E;
-       const SET_VERTICAL_SCROLL_AREA = 0xA3;
-       const RIGHT_HORIZONTAL_SCROLL = 0x26;
-       const LEFT_HORIZONTAL_SCROLL = 0x27;
-       const VERTICAL_AND_RIGHT_HORIZONTAL_SCROLL = 0x29;
-       const VERTICAL_AND_LEFT_HORIZONTAL_SCROLL = 0x2A; */
+    //const DISPLAY_OFF = 0xAE;
+    //const DISPLAY_ON = 0xAF;
+
 
 
     const basicFont: string[] = [

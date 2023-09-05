@@ -514,7 +514,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     //% block="i2c %pADDR EEPROM schreiben %x4 %x3 %x2 Zeichencodes %pzArray"
     //% inlineInputMode=inline
     export function writeEEPROM(pADDR: eADDR_EEPROM, x4: H4, x3: H3, x2: H2, pzArray: ezArray) {
-        let zArray: string[]
+        let zArray: string[]=[]
         switch (pzArray) {
             case ezArray.x20_x2F: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
             case ezArray.x30_x3F: { zArray = basicFontx30; break; }
@@ -523,8 +523,8 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
             case ezArray.x60_x6F: { zArray = basicFontx60; break; }
             case ezArray.x70_x7F: { zArray = basicFontx70; break; }
         }
-        if (zArray.length = 16) {
-            let bu = Buffer.create(130)
+        if (zArray.length == 16) {
+            let bu = Buffer.create(130) // 130
             bu.setNumber(NumberFormat.UInt16BE, 0, x4 + x3 + x2)
             for (let i = 0; i <= 15; i++) {
                 for (let j = 0; j <= 7; j++) {
@@ -533,7 +533,8 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
             }
             oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         }
-    }
+    } 
+
     export enum eADDR_EEPROM {  EEPROM = 0x50}
 
     export enum H2 {

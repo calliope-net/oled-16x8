@@ -7,10 +7,6 @@ initdisplaycodes from https://gist.githubusercontent.com/pulsar256/564fda3b9e8fc
 
 https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf)
 
-/*
-    // initdisplaycodes from https://gist.githubusercontent.com/pulsar256/564fda3b9e8fc6b06b89/raw/4bb559d4088e42f7b4859a8533be920434818617/ssd1306_init.c
-
-https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf)
 
 */ {
     export enum eADDR { OLED_16x8 = 0x3C, OLED_16x8_x3D = 0x3D }

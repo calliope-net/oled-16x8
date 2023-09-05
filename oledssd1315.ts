@@ -1,6 +1,12 @@
 
 //% color=#0000BF icon="\uf108" block="OLED 16x8" weight=20
 namespace oledssd1315
+/* 230904
+
+initdisplaycodes from https://gist.githubusercontent.com/pulsar256/564fda3b9e8fc6b06b89/raw/4bb559d4088e42f7b4859a8533be920434818617/ssd1306_init.c
+
+https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf)
+
 /*
     // initdisplaycodes from https://gist.githubusercontent.com/pulsar256/564fda3b9e8fc6b06b89/raw/4bb559d4088e42f7b4859a8533be920434818617/ssd1306_init.c
 
@@ -19,9 +25,6 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     export enum eCommand {
         Display_OFF = 0xAE,
         Display_ON = 0xAF,
-
-
-
     }
     let x = 0
     //% block

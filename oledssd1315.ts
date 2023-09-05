@@ -12,23 +12,17 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     export enum eADDR { OLED_16x8 = 0x3C, OLED_16x8_x3D = 0x3D }
     // For the SSD1315, the slave address is either "b0111100" or "b0111101" by changing the SA0 to LOW or HIGH (D/C pin acts as SA0).
 
-    enum eCONTROL {
+    enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
+        // CONTROL ist immer das 1. Byte im Buffer
         x00_xCom = 0x00, // im selben Buffer folgen nur Command Bytes ohne CONTROL dazwischen
         x80_1Com = 0x80, // im selben Buffer nach jedem Command ein neues CONTROL [0x00 | 0x80 | 0x40]
         x40_Data = 0x40  // im selben Buffer folgen nur Display-Data Bytes ohne CONTROL dazwischen
     }
 
-    export enum eCommand {
-        Display_OFF = 0xAE,
-        Display_ON = 0xAF,
-    }
-    let x = 0
-    //% block
-    export function test() {
-        return x++
-    }
+    export enum eCommand { Display_OFF = 0xAE, Display_ON = 0xAF, }
 
-    function write2Byte(pADDR: eADDR, b0: number, b1: number) {
+
+    /* function write2Byte(pADDR: eADDR, b0: number, b1: number) {
         let bu = pins.createBuffer(3)
         bu.setUint8(0, 0x00)
         bu.setUint8(1, b0)
@@ -40,14 +34,16 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         bu.setUint8(0, 0x00)
         bu.setUint8(1, b0)
         pins.i2cWriteBuffer(pADDR, bu)
-    }
+    } */
 
+    // ========== group="OLED 16x8 Display initialisieren"
 
-
-    //% block="i2c %pADDR init Display"
-    export function init(pADDR: eADDR) {
-        let bu = Buffer.create(23)
-        let offset = 0              // Buffer offset
+    //% group="OLED 16x8 Display initialisieren"
+    //% block="i2c %pADDR beim Start"
+    //% pADDR.shadow="oledssd1315_eADDR"
+    export function init(pADDR: number) {
+        let bu = Buffer.create(23)   // muss Anzahl der folgenden setUint8 entsprechen
+        let offset = 0               // Buffer offset (offset++ liest erst den Wert und erhöht ihn dann)
 
         bu.setUint8(offset++, eCONTROL.x00_xCom) // CONTROL Byte 0x00: folgende Bytes (im selben Buffer) sind alle command und kein CONTROL
         // CONTROL Byte 0x80: ignoriert 2. command-Byte (0xD5) und wertet es als CONTROL
@@ -95,140 +91,114 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
 
         //bu.setUint8(offset++, 0xAF)  // Set display ON
 
-        pins.i2cWriteBuffer(pADDR, bu)
+        oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu) // nur 1 Buffer wird gesendet
 
-        /* // (0,0)
-        set_pos(pADDR, 0, 0)
+        if (oledssd1315_i2cWriteBufferError != 0) {
+            basic.showNumber(pADDR) // wenn Modul nicht angesteckt: i2c Adresse anzeigen und Abbruch
+        } else {
+            bu = Buffer.create(135)
+            offset = 0            //offset = setCursorBuffer6(bu, 0, 0, 0)
 
-        // Clear Screen
-        bu = Buffer.create(121)// 1025
-        bu.fill(0x5A, 1, 120)
-        bu.setUint8(0, 0x40) // CONTROL Display Data
-        //pins.i2cWriteBuffer(pADDR, bu)
+            bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+            bu.setUint8(offset++, 0xB0)// | (page & 0x07)) // page number
 
-        for (let j = 0; j < 7; j++) {
-            set_pos(pADDR, 0, j)
-            bu.fill(0x50 + j, 1, 120)
-            pins.i2cWriteBuffer(pADDR, bu)
-        } */
-        let page = 0
-        let col = 0
-        bu = Buffer.create(135)
-        offset = 0
+            bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+            bu.setUint8(offset++, 0x00)// | (col & 0x0F)) // lower start column address 0x00-0x0F 4 Bit
 
-        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
-        bu.setUint8(offset++, 0xB0)// | (page & 0x07)) // page number
+            bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+            bu.setUint8(offset++, 0x10)// | (col >> 4) & 0x07) // upper start column address 0x10-0x17 3 Bit
 
-        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
-        bu.setUint8(offset++, 0x00)// | (col & 0x0F)) // lower start column address 0x00-0x0F 4 Bit
+            bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL+DisplayData
+            bu.fill(0x00, offset++, 128)
 
-        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
-        bu.setUint8(offset++, 0x10)// | (col >> 4) & 0x07) // upper start column address 0x10-0x17 3 Bit
+            for (let page = 0; page <= 7; page++) {
+                bu.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
+                // sendet den selben Buffer 8 Mal mit Änderung an 1 Byte
+                // true gibt den i2c Bus dazwischen nicht für andere Geräte frei
+                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, true) // Clear Screen
+            }
 
-        bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL+DisplayData
-        bu.fill(0x00, offset++, 128)
+            // Set display ON
+            bu = Buffer.create(2)
+            bu.setUint8(0, eCONTROL.x80_1Com) // CONTROL+1Command
+            bu.setUint8(1, 0xAF) // Set display ON
+            oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
 
-        for (let j = 0; j <= 7; j++) {
-            bu.setUint8(1, 0xB0 | j)
-            pins.i2cWriteBuffer(pADDR, bu, true) // Clear Screen
+            control.waitMicros(100000) // 100ms Delay Recommended
         }
-
-        // Set display ON
-        bu = Buffer.create(2)
-        bu.setUint8(0, eCONTROL.x80_1Com) // CONTROL+1Command
-        bu.setUint8(1, 0xAF) // Set display ON
-        pins.i2cWriteBuffer(pADDR, bu)
-
-        //clearPage(pADDR, 3)
-
-        control.waitMicros(100000)// 100ms Delay Recommended
-
     }
 
-    //% group="OLED 16x8 Display"
-    //% block="i2c %pADDR setCursor row %row col %col" weight=6
-    //% row.min=0 row.max=7 col.min=0 col.max=15
-    export function setCursor(pADDR: eADDR, row: number, col: number) {
-        //write0x80Byte(pADDR, (row == 0 ? col | 0x80 : col | 0xc0))
-        let bu = Buffer.create(4)
-        bu.setUint8(0, 0x00) // CONTROL mehrere command
-        bu.setUint8(1, 0xB0 | (row & 0x07)) // page number 0-7 B0-B7
-        bu.setUint8(2, 0x00 | (col << 3) & 0x0F)// (col % 16)) // lower start column address 0x00-0x0F 4 Bit
-        bu.setUint8(3, 0x10 | (col >> 1) & 0x07) // (col >> 4) upper start column address 0x10-0x17 3 Bit
-        pins.i2cWriteBuffer(pADDR, bu)
 
-        control.waitMicros(50)
-    }
-
-    function setCursorBuffer6(bu: Buffer, row: number, col: number) {
-        let offset = 0
-        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
-        bu.setUint8(offset++, 0xB0 | (row & 0x07))      // page number 0-7 B0-B7
-        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
-        bu.setUint8(offset++, 0x00 | (col << 3) & 0x0F) // (col % 16)) // lower start column address 0x00-0x0F 4 Bit
-        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
-        bu.setUint8(offset++, 0x10 | (col >> 1) & 0x07) // (col >> 4) upper start column address 0x10-0x17 3 Bit
-        return offset
-        //                    0x40     CONTROL+Display Data
-    }
+    // ========== group="OLED 16x8 Display"
 
     export enum eAlign { left, right }
 
     //% group="OLED 16x8 Display"
-    //% block="i2c %pADDR writeText row %row col %col end %end align %pFormat Text %pText" weight=4
+    //% block="i2c %pADDR writeText row %row col %col end %end align %pFormat Text %pText" weight=8
     //% row.min=0 row.max=7 col.min=0 col.max=15 end.min=0 end.max=15 end.defl=15
     //% inlineInputMode=inline
-    export function writeText(pADDR: eADDR, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
-        let l: number = end - col + 1, t: string
-        if (col >= 0 && col <= 15 && l > 0 && l <= 16) {
-            //setCursor(pADDR, row, col)
+    //% pADDR.shadow="oledssd1315_eADDR"
+    export function writeText(pADDR: number, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
+        let len = end - col + 1, text: string
+        if (between(row, 0, 7) && between(col, 0, 15) && between(len, 0, 16)) {
+            //if (col >= 0 && col <= 15 && l > 0 && l <= 16) {
 
-            if (pText.length >= l) t = pText.substr(0, l)
-            else if (pText.length < l && pAlign == eAlign.left) { t = pText + "                ".substr(0, l - pText.length) }
-            else if (pText.length < l && pAlign == eAlign.right) { t = "                ".substr(0, l - pText.length) + pText }
+            if (pText.length >= len) text = pText.substr(0, len)
+            else if (pText.length < len && pAlign == eAlign.left) { text = pText + "                ".substr(0, len - pText.length) }
+            else if (pText.length < len && pAlign == eAlign.right) { text = "                ".substr(0, len - pText.length) + pText }
 
-            let bu = Buffer.create(7 + t.length * 8)
-            let offset = setCursorBuffer6(bu, row, col)
+            let bu = Buffer.create(7 + text.length * 8)
+            let offset = setCursorBuffer6(bu, 0, row, col) // setCursor
 
-            writeOLEDBuffer1(pADDR, bu, offset, t)
-
-            /* let font: string
-            bu.setUint8(offset++, 0x40) // CONTROL Byte 0x40: Display Data
-
-            for (let j = 0; j < t.length; j++) {
-                font = basicFont[t.charCodeAt(j) - 32]
-
-                for (let i = 0; i < 8; i++) {
-                    bu.setUint8(offset++, font.charCodeAt(i))
-                }
-            }
-            pins.i2cWriteBuffer(pADDR, bu) */
+            writeTextBuffer1(pADDR, bu, offset, text)
         }
-        /* 
-        let l: number = end - col + 1, t: string
-        if (col >= 0 && col <= 15 && l > 0 && l <= 16) {
-            setCursor(pADDR, row, col)
+    }
 
-            if (pText.length >= l) t = pText.substr(0, l)
-            else if (pText.length < l && pAlign == eAlign.left) { t = pText + "                ".substr(0, l - pText.length) }
-            else if (pText.length < l && pAlign == eAlign.right) { t = "                ".substr(0, l - pText.length) + pText }
 
-            //writeLCD(pADDR, t)
-        } */
+    //% group="OLED 16x8 Display"
+    //% block="i2c %pADDR setCursor row %row col %col" weight=6
+    //% row.min=0 row.max=7 col.min=0 col.max=15
+    //% pADDR.shadow="oledssd1315_eADDR"
+    export function setCursor(pADDR: number, row: number, col: number) {
+        //write0x80Byte(pADDR, (row == 0 ? col | 0x80 : col | 0xc0))
+        let bu = Buffer.create(6)
+        setCursorBuffer6(bu, 0, row, col)
+        /*
+        bu.setUint8(0, 0x00) // CONTROL mehrere command
+        bu.setUint8(1, 0xB0 | (row & 0x07)) // page number 0-7 B0-B7
+        bu.setUint8(2, 0x00 | (col << 3) & 0x0F)// (col % 16)) // lower start column address 0x00-0x0F 4 Bit
+        bu.setUint8(3, 0x10 | (col >> 1) & 0x07) // (col >> 4) upper start column address 0x10-0x17 3 Bit
+        */
+        oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+
+        control.waitMicros(50)
+    }
+
+    function setCursorBuffer6(bu: Buffer, offset: number, row: number, col: number) {
+        // schreibt in den Buffer ab offset 6 Byte (CONTROL und Command für setCursor)
+        // Buffer muss vorher die richtige Länge haben
+        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+        bu.setUint8(offset++, 0xB0 | row & 0x07)      // page number 0-7 B0-B7
+        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+        bu.setUint8(offset++, 0x00 | col << 3 & 0x0F) // (col % 16) lower start column address 0x00-0x0F 4 Bit
+        bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+        bu.setUint8(offset++, 0x10 | col >> 1 & 0x07) // (col >> 4) upper start column address 0x10-0x17 3 Bit
+        return offset
+        //                    0x40               // CONTROL+Display Data
     }
 
     //% group="OLED 16x8 Display"
-    //% block="i2c %pADDR writeText %pText" weight=2
-    export function writeOLED(pADDR: eADDR, pText: string) {
-        writeOLEDBuffer1(pADDR, Buffer.create(1 + pText.length * 8), 0, pText)
+    //% block="i2c %pADDR writeText %pText" weight=4
+    //% pADDR.shadow="oledssd1315_eADDR"
+    export function writeText1(pADDR: number, pText: string) {
+        writeTextBuffer1(pADDR, Buffer.create(1 + pText.length * 8), 0, pText)
     }
 
-    function writeOLEDBuffer1(pADDR: eADDR, bu: Buffer, offset: number, pText: string) {
+    function writeTextBuffer1(pADDR: eADDR, bu: Buffer, offset: number, pText: string) {
+        // schreibt in den Buffer ab offset 1 Byte 0x40 + 8 Byte pro char im Text für die 8x8 Pixel
+        // Buffer muss vorher die richtige Länge haben
         let font: string
-        //let bu = Buffer.create(1 + pText.length * 8)
-        //let offset = 0 // setCursorBuffer(bu, row, col)
         bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
-
         for (let j = 0; j < pText.length; j++) {
             font = basicFont[pText.charCodeAt(j) - 32]
 
@@ -236,10 +206,37 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
                 bu.setUint8(offset++, font.charCodeAt(i))
             }
         }
-        pins.i2cWriteBuffer(pADDR, bu)
+        oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        control.waitMicros(50)
     }
 
-    function set_pos(pADDR: eADDR, col: number = 0, page: number = 0) {
+    //% group="OLED 16x8 Display"
+    //% block="i2c %pADDR Display löschen || von Zeile %vonZeile bis Zeile %bisZeile mit Zeichencode %charcode" weight=2
+    //% pADDR.shadow="oledssd1315_eADDR"
+    //% zeichen.min=0 zeichen.max=255 zeichen.defl=0
+    //% vonZeile.min=0 vonZeile.max=7 vonZeile.defl=0
+    //% bisZeile.min=0 bisZeile.max=7 bisZeile.defl=7
+    //% inlineInputMode=inline
+    export function clearScreen(pADDR: eADDR, vonZeile: number, bisZeile: number, charcode: number) {
+        if (between(vonZeile, 0, 7) && between(bisZeile, 0, 7)) {
+            let bu = Buffer.create(135)
+            let offset = setCursorBuffer6(bu, 0, 0, 0)
+            bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL+DisplayData
+            bu.fill(charcode & 0xFF, offset++, 128)   // 128 Byte füllen eine Zeile pixelweise
+
+            for (let page = vonZeile; page <= bisZeile; page++) {
+                bu.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
+                // sendet den selben Buffer 8 Mal mit Änderung an 1 Byte
+                // true gibt den i2c Bus dazwischen nicht für andere Geräte frei
+                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, page < bisZeile) // Clear Screen
+            }
+            control.waitMicros(100000) // 100ms Delay Recommended
+        }
+    }
+
+
+
+    /* function set_pos(pADDR: eADDR, col: number = 0, page: number = 0) {
         //writeOneByte(0xb0 | page) // page number
         //writeOneByte(0x00 | (col % 16)) // lower start column address 0x00-0x0F 4 Bit
         //writeOneByte(0x10 | (col >> 4)) // upper start column address 0x10-0x17 3 Bit 
@@ -249,7 +246,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         bu.setUint8(2, 0x00 | (col & 0x0F))// (col % 16)) // lower start column address 0x00-0x0F 4 Bit
         bu.setUint8(3, 0x10 | (col >> 4) & 0x07) // upper start column address 0x10-0x17 3 Bit
         pins.i2cWriteBuffer(pADDR, bu)
-    }
+    } */
 
     /**
        * Setzt das Display zurück und löscht es.
@@ -306,37 +303,8 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         setTextXY(0, 0);
     }
 
-    //% block="i2c %pADDR lösche Zeile %pPage"
-    //% pPage.min=0 pPage.max=7
-    export function clearPage(pADDR: eADDR, pPage: number) {
-        // Page (0-7) ist eine Text-Zeile 8 Pixel hoch
-        //setCursor(pADDR, pPage, 0)
-        setTextXY(pPage, 0)
-        putChar("x")
-        /*  let bu = pins.createBuffer(2)
-         bu.setUint8(0, 0x40)    //set column lower address 0-15
-         bu.setUint8(1, 0x44)
-         //bu.setUint8(2, 0xB0 | 0x07 & pPage)         //set page address 0-7
-         //bu.fill(0x44, 1, 48)
-         pins.i2cWriteBuffer(pADDR, bu) */
-    }
+  
 
-    //% block="i2c %pADDR setCursor_ row %row col %col" weight=82
-    //% row.min=0 row.max=7 col.min=0 col.max=15
-    export function setCursor_(pADDR: eADDR, row: number, col: number) {
-        /* let bu = pins.createBuffer(3)
-        bu.setUint8(0, 0x00 | 0x0F & col << 3)    //set column lower address
-        bu.setUint8(1, 0x10 | 0x07 & col >> 1)    //set column higher address
-        bu.setUint8(2, 0xB0 | 0x07 & row)         //set page address 
-        // 0xB0 darf nicht zuerst im Buffer stehen (offset=0)
-        pins.i2cWriteBuffer(pADDR, bu)
-        //write0x80Byte(pADDR, (row == 0 ? col | 0x80 : col | 0xc0))
-        //control.waitMicros(50) */
-
-        write1Byte(0x3c, 0x00 | 0x0F & col << 3)
-        write1Byte(0x3c, 0x10 | 0x07 & col >> 1)
-        write1Byte(0x3c, 0xB0 | 0x07 & row)
-    }
 
     /**
      * Bewegt den Cursor an eine neue Position.
@@ -602,5 +570,24 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         "\x00\x02\x05\x02\x00\x00\x00\x00"  // "°"
     ];
 
+    // ========== group="Logik"
+
+    //% group="Logik" advanced=true
+    //% block="%i0 zwischen %i1 und %i2"
+    export function between(i0: number, i1: number, i2: number): boolean {
+        return (i0 >= i1 && i0 <= i2)
+    }
+
+    // ========== group="i2c Adressen"
+
+    //% blockId=oledssd1315_eADDR
+    //% group="i2c Adressen" advanced=true
+    //% block="%pADDR" weight=4
+    export function oledssd1315_eADDR(pADDR: eADDR): number { return pADDR }
+
+    //% group="i2c Adressen" advanced=true
+    //% block="Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)" weight=2
+    export function i2cError() { return oledssd1315_i2cWriteBufferError }
+    let oledssd1315_i2cWriteBufferError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
 } // oledssd1315.ts

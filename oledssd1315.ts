@@ -211,11 +211,14 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         let font: string
         bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
         for (let j = 0; j < pText.length; j++) {
-            font = basicFont[pText.charCodeAt(j) - 32]
+
+            bu.write(offset, getPixel8Byte(pText.charCodeAt(j)))
+            offset += 8
+            /* font = basicFont[pText.charCodeAt(j) - 32]
 
             for (let i = 0; i < 8; i++) {
                 bu.setUint8(offset++, font.charCodeAt(i))
-            }
+            } */
         }
         oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         control.waitMicros(50)
@@ -481,17 +484,70 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         Buffer.create(128), Buffer.create(128)
     ] */
 
-
-    
-    let oledssd1315_Buffer = Buffer.create(128)
-    let oledssd1315_offset = 0
-
-    function addBuffer128(p8Char: string[]) {
+    function getPixel8Byte(pCharCode: number) {
+        let zArray: string[]
+        switch (pCharCode & 0xF0) {
+            case 0x20: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
+            case 0x30: { zArray = basicFontx30; break; }
+            case 0x40: { zArray = basicFontx40; break; }
+            case 0x50: { zArray = basicFontx50; break; }
+            case 0x60: { zArray = basicFontx60; break; }
+            case 0x70: { zArray = basicFontx70; break; }
+        }
+        let bu = Buffer.create(128)
+        //let o = 0
         for (let i = 0; i <= 15; i++) {
             for (let j = 0; j <= 7; j++) {
-                oledssd1315_Buffer.setUint8(oledssd1315_offset++, p8Char[i].charCodeAt(j))
+                bu.setUint8(i * 8 + j, zArray[i].charCodeAt(j))
             }
         }
+
+        let offset = (pCharCode & 0x0F) * 8 // max 15*8=120
+
+        return bu.slice(offset, 8)
+    }
+
+    export enum ezArray { x20_x2F, x30_x3F, x40_x4F, x50_x5F, x60_x6F, x70_x7F }
+
+
+    //% group="EEPROM"
+    //% block="i2c %pADDR EEPROM schreiben %x4 %x3 %x2 Zeichencodes %pzArray"
+    //% inlineInputMode=inline
+    export function writeEEPROM(pADDR: eADDR_EEPROM, x4: H4, x3: H3, x2: H2, pzArray: ezArray) {
+        let zArray: string[]
+        switch (pzArray) {
+            case ezArray.x20_x2F: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
+            case ezArray.x30_x3F: { zArray = basicFontx30; break; }
+            case ezArray.x40_x4F: { zArray = basicFontx40; break; }
+            case ezArray.x50_x5F: { zArray = basicFontx50; break; }
+            case ezArray.x60_x6F: { zArray = basicFontx60; break; }
+            case ezArray.x70_x7F: { zArray = basicFontx70; break; }
+        }
+        if (zArray.length = 16) {
+            let bu = Buffer.create(130)
+            bu.setNumber(NumberFormat.UInt16BE, 0, x4 + x3 + x2)
+            for (let i = 0; i <= 15; i++) {
+                for (let j = 0; j <= 7; j++) {
+                    bu.setUint8(2 + i * 8 + j, zArray[i].charCodeAt(j))
+                }
+            }
+            oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+        }
+    }
+    export enum eADDR_EEPROM {  EEPROM = 0x50}
+
+    export enum H2 {
+        x00 = 0x00, /*x10 = 0x10, x20 = 0x20, x30 = 0x30, x40 = 0x40, x50 = 0x50, x60 = 0x60, x70 = 0x70,*/
+        x80 = 0x80 /*, x90 = 0x90, xA0 = 0xA0, xB0 = 0xB0, xC0 = 0xC0, xD0 = 0xD0, xE0 = 0xE0, xF0 = 0xF0*/
+    }
+    export enum H3 {
+        /* x000 = 0x000, x100 = 0x100, x200 = 0x200, x300 = 0x300, x400 = 0x400, x500 = 0x500, x600 = 0x600, x700 = 0x700, */
+        x800 = 0x800, x900 = 0x900, xA00 = 0xA00, xB00 = 0xB00, xC00 = 0xC00, xD00 = 0xD00, xE00 = 0xE00, xF00 = 0xF00
+    }
+    export enum H4 {
+        /* x0000 = 0x0000, x1000 = 0x1000, x2000 = 0x2000, x3000 = 0x3000, x4000 = 0x4000, x5000 = 0x5000, x6000 = 0x6000, x7000 = 0x7000,
+        x8000 = 0x8000, x9000 = 0x9000, xA000 = 0xA000, xB000 = 0xB000, xC000 = 0xC000, xD000 = 0xD000, xE000 = 0xE000,  */
+        xF000 = 0xF000
     }
 
     const basicFontx20: string[] = [

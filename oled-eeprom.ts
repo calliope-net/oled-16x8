@@ -282,14 +282,15 @@ namespace oledeeprom
         filenameBuffer = pins.i2cReadBuffer(pADDR_LOG, 32)
         control.waitMicros(50000) // 50ms
         if (filenameBuffer.toString().substr(0, pFilename.length) != pFilename) {
+            /* 
             oledssd1315.writeText(oledssd1315.eADDR.OLED_16x8_x3D, 0, 0, 15, oledssd1315.eAlign.left, pFilename)
             oledssd1315.writeText(oledssd1315.eADDR.OLED_16x8_x3D, 1, 0, 15, oledssd1315.eAlign.left, filenameBuffer.toString())
-
+            */
             return false // file not found
         } else {
 
             logBuffer.setUint8(0, eWriteStringReadString.readFile) // READ command
-            //logBuffer.write(1, filenameBuffer)
+            // filename steht ab offset=1 schon im logBuffer
 
             // Dateiname senden, open read
             oledeeprom_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR_LOG, logBuffer)
@@ -298,8 +299,11 @@ namespace oledeeprom
             let eepromBuffer = Buffer.create(130)
             for (let page = 0; page < pAnzahlPages128; page++) {
 
-                // 128 Byte von Speicherkarte lesen
+                // 128 Byte von Speicherkarte lesen als 4 * 32 Byte
+                // Qwiic OpenLog überträgt nur 32 Byte in einem Buffer
+                // EEPROM kann (2 Byte Adresse) + 128 Byte in einem Buffer schreiben
                 logBuffer = pins.i2cReadBuffer(pADDR_LOG, 32) // 128
+                // 32 Byte von einem Buffer in den anderen füllen
                 eepromBuffer.write(2, logBuffer)
                 control.waitMicros(5000) // 5ms
 
@@ -317,10 +321,7 @@ namespace oledeeprom
 
                 // EEPROM Buffer 2 Byte startAdrEEPROM
                 eepromBuffer.setNumber(NumberFormat.UInt16BE, 0, pageEEPROM * 128 + page * 128)
-
-                // 128 Byte von einem Buffer in den anderen füllen
-                //eepromBuffer.write(2, logBuffer)
-
+                /* 
                 if (page >= 0 && page <= 7) {
                     oledssd1315.writeText(oledssd1315.eADDR.OLED_16x8_x3D, page, 0, 7, oledssd1315.eAlign.left,
                         eepromBuffer.slice(0, 6).toHex() //+ " " + eepromBuffer.slice(0, 2).toHex()
@@ -331,7 +332,8 @@ namespace oledeeprom
                         eepromBuffer.slice(0, 6).toHex() //+ eepromBuffer.slice(0, 2).toHex()
                     )
                 }
-
+                */
+                // 2+128 Byte auf EEPROM brennen (1 Page)
                 oledeeprom_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR_EEPROM, eepromBuffer)
                 control.waitMicros(50000) // 50ms
 

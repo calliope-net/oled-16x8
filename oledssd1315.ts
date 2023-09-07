@@ -325,9 +325,42 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         bu.setNumber(NumberFormat.UInt16BE, 0, pStartAdresse + pCharCode * 8)
         oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(eADDR_EEPROM.EEPROM, bu, true)
 
-        return pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8)
-
+        if (pStartAdresse >= eStartAdresse.F800) {
+            return pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8)
+        } else {
+            return drehen(pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8))
+        }
     }
+
+    function drehen(b0: Buffer) { // Buffer mit 8 Byte
+        let b1 = Buffer.create(8)
+        b1.fill(0b00000000)
+
+        /* for (let b0offset = 0; b0offset <= 7; b0offset++) {
+            if ((b0.getUint8(b0offset) & 2 ** 0) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 0) }
+            if ((b0.getUint8(b0offset) & 2 ** 1) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 1) }
+            if ((b0.getUint8(b0offset) & 2 ** 2) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 2) }
+            if ((b0.getUint8(b0offset) & 2 ** 3) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 3) }
+            if ((b0.getUint8(b0offset) & 2 ** 4) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 4) }
+            if ((b0.getUint8(b0offset) & 2 ** 5) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 5) }
+            if ((b0.getUint8(b0offset) & 2 ** 6) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 6) }
+            if ((b0.getUint8(b0offset) & 2 ** 7) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 7) }
+        } */
+
+        for (let i = 0; i <= 7; i++) { // 8x8 Bit 1/4 nach rechts drehen
+            if ((b0.getUint8(i) & 2 ** 0) != 0) { b1.setUint8(7, b1.getUint8(7) | 2 ** i) }
+            if ((b0.getUint8(i) & 2 ** 1) != 0) { b1.setUint8(6, b1.getUint8(6) | 2 ** i) }
+            if ((b0.getUint8(i) & 2 ** 2) != 0) { b1.setUint8(5, b1.getUint8(5) | 2 ** i) }
+            if ((b0.getUint8(i) & 2 ** 3) != 0) { b1.setUint8(4, b1.getUint8(4) | 2 ** i) }
+            if ((b0.getUint8(i) & 2 ** 4) != 0) { b1.setUint8(3, b1.getUint8(3) | 2 ** i) }
+            if ((b0.getUint8(i) & 2 ** 5) != 0) { b1.setUint8(2, b1.getUint8(2) | 2 ** i) }
+            if ((b0.getUint8(i) & 2 ** 6) != 0) { b1.setUint8(1, b1.getUint8(1) | 2 ** i) }
+            if ((b0.getUint8(i) & 2 ** 7) != 0) { b1.setUint8(0, b1.getUint8(0) | 2 ** i) }
+        }
+        return b1
+    }
+
+
 
     function getPixel8Byte_(pCharCode: number) {
         let zArray: string[]
@@ -351,35 +384,35 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
 
         return bu.slice(offset, 8)
     }
-
-    export enum ezArray { x20_x2F, x30_x3F, x40_x4F, x50_x5F, x60_x6F, x70_x7F }
-
-
-    //% group="EEPROM"
-    //% block="i2c %pADDR EEPROM schreiben %x4 %x3 %x2 Zeichencodes %pzArray"
-    //% inlineInputMode=inline
-    export function writeEEPROM(pADDR: eADDR_EEPROM, x4: H4, x3: H3, x2: H2, pzArray: ezArray) {
-        let zArray: string[] = []
-        switch (pzArray) {
-            case ezArray.x20_x2F: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
-            case ezArray.x30_x3F: { zArray = basicFontx30; break; }
-            case ezArray.x40_x4F: { zArray = basicFontx40; break; }
-            case ezArray.x50_x5F: { zArray = basicFontx50; break; }
-            case ezArray.x60_x6F: { zArray = basicFontx60; break; }
-            case ezArray.x70_x7F: { zArray = basicFontx70; break; }
-        }
-        if (zArray.length == 16) {
-            let bu = Buffer.create(130) // 130
-            bu.setNumber(NumberFormat.UInt16BE, 0, x4 + x3 + x2)
-            for (let i = 0; i <= 15; i++) {
-                for (let j = 0; j <= 7; j++) {
-                    bu.setUint8(2 + i * 8 + j, zArray[i].charCodeAt(j))
-                }
+    /* 
+        export enum ezArray { x20_x2F, x30_x3F, x40_x4F, x50_x5F, x60_x6F, x70_x7F }
+    
+    
+        //% group="EEPROM"
+        //% block="i2c %pADDR EEPROM schreiben %x4 %x3 %x2 Zeichencodes %pzArray"
+        //% inlineInputMode=inline
+        export function writeEEPROM(pADDR: eADDR_EEPROM, x4: H4, x3: H3, x2: H2, pzArray: ezArray) {
+            let zArray: string[] = []
+            switch (pzArray) {
+                case ezArray.x20_x2F: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
+                case ezArray.x30_x3F: { zArray = basicFontx30; break; }
+                case ezArray.x40_x4F: { zArray = basicFontx40; break; }
+                case ezArray.x50_x5F: { zArray = basicFontx50; break; }
+                case ezArray.x60_x6F: { zArray = basicFontx60; break; }
+                case ezArray.x70_x7F: { zArray = basicFontx70; break; }
             }
-            oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+            if (zArray.length == 16) {
+                let bu = Buffer.create(130) // 130
+                bu.setNumber(NumberFormat.UInt16BE, 0, x4 + x3 + x2)
+                for (let i = 0; i <= 15; i++) {
+                    for (let j = 0; j <= 7; j++) {
+                        bu.setUint8(2 + i * 8 + j, zArray[i].charCodeAt(j))
+                    }
+                }
+                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+            }
         }
-    }
-
+     */
     export enum eADDR_EEPROM { EEPROM = 0x50 }
 
     export enum H2 {

@@ -212,7 +212,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
         for (let j = 0; j < pText.length; j++) {
 
-            bu.write(offset, getPixel8ByteEEPROM(pText.charCodeAt(j)))
+            bu.write(offset, getPixel8ByteEEPROM(pText.charCodeAt(j), eStartAdresse.F800))
             offset += 8
             /* font = basicFont[pText.charCodeAt(j) - 32]
 
@@ -224,7 +224,9 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         control.waitMicros(50)
     }
 
-    //% group="OLED 16x8 Display"
+    // ========== group="OLED 16x8 Display löschen"
+
+    //% group="OLED 16x8 Display löschen"
     //% block="i2c %pADDR Display löschen || von Zeile %vonZeile bis Zeile %bisZeile mit Zeichencode %charcode" weight=2
     //% pADDR.shadow="oledssd1315_eADDR"
     //% vonZeile.min=0 vonZeile.max=7 vonZeile.defl=0
@@ -247,6 +249,28 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
             control.waitMicros(100000) // 100ms Delay Recommended
         }
     }
+
+    //% group="OLED 16x8 Display löschen"
+    //% block="i2c %pADDR Display füllen" weight=1
+    //% pADDR.shadow="oledssd1315_eADDR"
+    export function fillScreen(pADDR: number) {
+        let bu = Buffer.create(135)
+        let offset = setCursorBuffer6(bu, 0, 0, 0)
+        bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL+DisplayData
+
+        for (let page = 0; page <= 7; page++) {
+            bu.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
+            offset = 7 // offset 7-135 sind 128 Byte für die Pixel in einer Zeile
+            for (let charCode = 0; charCode <= 15; charCode++) {
+                // schreibt 16 Zeichen je 8 Pixel in den Buffer(7-135)
+                bu.write(offset, getPixel8ByteEEPROM(page * 16 + charCode, eStartAdresse.F800))
+                offset += 8
+            }
+            oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, page < 7)
+        }
+    }
+
+
 
     export enum eDisplayCommand {
         //% block="AF AE Set Display ON/OFF"
@@ -283,11 +307,11 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
     }
 
+    export enum eStartAdresse { F800 = 0xF800, FC00 = 0xFC00 }
 
-
-    function getPixel8ByteEEPROM(pCharCode: number) {
-        let startAdr = 0xF800
-        switch (pCharCode & 0xF0) {
+    function getPixel8ByteEEPROM(pCharCode: number, pStartAdresse: eStartAdresse) {
+        //let startAdr = pStartAdresse + pCharCode * 8 // max 15*8=120
+        /* switch (pCharCode & 0xF0) {
             case 0x20: { startAdr = 0xF900; break; } // 16 string-Elemente je 8 Byte = 128
             case 0x30: { startAdr = 0xF980; break; }
             case 0x40: { startAdr = 0xFA00; break; }
@@ -296,9 +320,9 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
             case 0x70: { startAdr = 0xFB80; break; }
         }
         let offset = (pCharCode & 0x0F) * 8 // max 15*8=120
-
+        */
         let bu = Buffer.create(2)
-        bu.setNumber(NumberFormat.UInt16BE, 0, startAdr + offset)
+        bu.setNumber(NumberFormat.UInt16BE, 0, pStartAdresse + pCharCode * 8)
         oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(eADDR_EEPROM.EEPROM, bu, true)
 
         return pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8)

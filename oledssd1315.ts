@@ -51,7 +51,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     // ========== group="OLED 16x8 Display initialisieren"
 
     //% group="OLED 16x8 Display initialisieren"
-    //% block="i2c %pADDR beim Start || invert %invert drehen %flip zeichensatz %pEEPROM_Startadresse i2c %pADDR_EEPROM"
+    //% block="i2c %pADDR beim Start || invert %pInvert drehen %pFlip zeichensatz %pEEPROM_Startadresse i2c %pADDR_EEPROM"
     //% pADDR.shadow="oledssd1315_eADDR"
     //% pInvert.shadow="toggleOnOff"
     //% pFlip.shadow="toggleOnOff"

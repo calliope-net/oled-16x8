@@ -1,5 +1,6 @@
 {
     "name": "oled-16x8",
+    "version": "0.0.1",
     "dependencies": {
         "core": "*"
     },

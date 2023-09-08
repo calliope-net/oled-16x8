@@ -7,8 +7,7 @@
         "main.blocks",
         "main.ts",
         "README.md",
-        "oledssd1315.ts",
-        "oled-eeprom.ts"
+        "oledssd1315.ts"
     ],
     "testFiles": [
         "test.ts"

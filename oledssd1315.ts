@@ -61,7 +61,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
 
     //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
-    //% block="i2c %pADDR beim Start || invert %pInvert drehen %pFlip Zeichensatz %pEEPROM_Startadresse i2c %pADDR_EEPROM"
+    //% block="i2c %pADDR beim Start || invert %pInvert drehen %pFlip Zeichensatz %pEEPROM_Startadresse i2c %pADDR_EEPROM" weight=8
     //% pADDR.shadow="oledssd1315_eADDR"
     //% pInvert.shadow="toggleOnOff"
     //% pFlip.shadow="toggleOnOff"
@@ -175,6 +175,34 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     }
 
 
+    // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
+
+
+    //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
+    //% block="i2c %pADDR Display löschen || von Zeile %vonZeile bis Zeile %bisZeile mit Zeichencode %charcode" weight=2
+    //% pADDR.shadow="oledssd1315_eADDR"
+    //% vonZeile.min=0 vonZeile.max=7 vonZeile.defl=0
+    //% bisZeile.min=0 bisZeile.max=7 bisZeile.defl=7
+    //% charcode.min=0 charcode.max=255 charcode.defl=0
+    //% inlineInputMode=inline
+    export function clearScreen(pADDR: number, vonZeile?: number, bisZeile?: number, charcode?: number) {
+        if (between(vonZeile, 0, 7) && between(bisZeile, 0, 7)) {
+            let bu = Buffer.create(135)
+            let offset = setCursorBuffer6(bu, 0, 0, 0)
+            bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL+DisplayData
+            bu.fill(charcode & 0xFF, offset++, 128)   // 128 Byte füllen eine Zeile pixelweise
+
+            for (let page = vonZeile; page <= bisZeile; page++) {
+                bu.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
+                // sendet den selben Buffer 8 Mal mit Änderung an 1 Byte
+                // true gibt den i2c Bus dazwischen nicht für andere Geräte frei
+                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, page < bisZeile) // Clear Screen
+            }
+            control.waitMicros(100000) // 100ms Delay Recommended
+        }
+    }
+
+
     // ========== group="OLED 16x8 Display Text anzeigen"
 
     export enum eAlign {
@@ -206,7 +234,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         }
     }
 
-    // group="OLED 16x8 Display"
+    //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
     //% block="i2c %pADDR Text 8x16 Zeile %row von %col bis %end %pText || %pAlign" weight=7
     //% row.min=0 row.max=15 col.min=0 col.max=7 end.min=0 end.max=7 end.defl=7
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -237,7 +265,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
 
-    // group="OLED 16x8 Display"
+    //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
     //% block="i2c %pADDR Cursor Zeile %row von %col" weight=6
     //% row.min=0 row.max=7 col.min=0 col.max=15
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -263,7 +291,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         //                    0x40               // CONTROL+Display Data
     }
 
-    // group="OLED 16x8 Display"
+    //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
     //% block="i2c %pADDR Text %pText" weight=4
     //% pADDR.shadow="oledssd1315_eADDR"
     //% pText.shadow="oledssd1315_text"
@@ -286,31 +314,6 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     }
 
 
-    // ========== group="Display löschen"
-
-    //% group="Display löschen"
-    //% block="i2c %pADDR Display löschen || von Zeile %vonZeile bis Zeile %bisZeile mit Zeichencode %charcode" weight=2
-    //% pADDR.shadow="oledssd1315_eADDR"
-    //% vonZeile.min=0 vonZeile.max=7 vonZeile.defl=0
-    //% bisZeile.min=0 bisZeile.max=7 bisZeile.defl=7
-    //% charcode.min=0 charcode.max=255 charcode.defl=0
-    //% inlineInputMode=inline
-    export function clearScreen(pADDR: number, vonZeile?: number, bisZeile?: number, charcode?: number) {
-        if (between(vonZeile, 0, 7) && between(bisZeile, 0, 7)) {
-            let bu = Buffer.create(135)
-            let offset = setCursorBuffer6(bu, 0, 0, 0)
-            bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL+DisplayData
-            bu.fill(charcode & 0xFF, offset++, 128)   // 128 Byte füllen eine Zeile pixelweise
-
-            for (let page = vonZeile; page <= bisZeile; page++) {
-                bu.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
-                // sendet den selben Buffer 8 Mal mit Änderung an 1 Byte
-                // true gibt den i2c Bus dazwischen nicht für andere Geräte frei
-                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, page < bisZeile) // Clear Screen
-            }
-            control.waitMicros(100000) // 100ms Delay Recommended
-        }
-    }
 
     // ========== group="kopiert 1024 Byte vom EEPROM auf ein Display (Text, Bild)"
 

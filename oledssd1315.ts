@@ -362,7 +362,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
 
 
 
-    function getPixel8Byte_(pCharCode: number) {
+    /* function getPixel8Byte_(pCharCode: number) {
         let zArray: string[]
         switch (pCharCode & 0xF0) {
             case 0x20: { zArray = oledeeprom.basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
@@ -383,7 +383,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         let offset = (pCharCode & 0x0F) * 8 // max 15*8=120
 
         return bu.slice(offset, 8)
-    }
+    } */
 
 
 

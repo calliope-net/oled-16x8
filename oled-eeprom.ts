@@ -2,19 +2,60 @@
 //% color=#0000BF icon="\uf108" block="OLED EEPROM" weight=20
 namespace oledeeprom
 /* 230907
+Erweiterung zum Programmieren des EEPROM für:
+https://github.com/calliope-net/oled-16x8
+Diese Erweiterung kann gelöscht werden, wenn der EEPROM einmal programmiert ist.
 
+zum Programmieren der im Code vorhandenen Arrays auf den EEPROM:
+SparkFun Qwiic EEPROM Breakout - 512Kbit
+https://www.sparkfun.com/products/18355
+
+zum Programmieren einer Datei (Zeichengenerator) auf den EEPROM:
+SparkFun Qwiic OpenLog
+https://www.sparkfun.com/products/15164
+
+OLED Display neu programmiert von Lutz Elßner im September 2023
 */ {
     export enum eADDR_EEPROM { EEPROM = 0x50 }
     export enum eADDR_LOG { LOG_Qwiic = 0x2A, LOG_Qwiic_x29 = 0x29 }
+
+
+
+    // kann aus den Arrays die Pixel (8 Byte für 1 Zeichen) holen
+    // wenn kein EEPROM vorhanden ist, der die Pixel enthält
+    export function getPixel8Byte(pCharCode: number) {
+        let charCodeArray: string[]
+        switch (pCharCode & 0xF0) {
+            case 0x00: { charCodeArray = extendedCharacters; break; }
+            case 0x20: { charCodeArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
+            case 0x30: { charCodeArray = basicFontx30; break; }
+            case 0x40: { charCodeArray = basicFontx40; break; }
+            case 0x50: { charCodeArray = basicFontx50; break; }
+            case 0x60: { charCodeArray = basicFontx60; break; }
+            case 0x70: { charCodeArray = basicFontx70; break; }
+        }
+        let bu = Buffer.create(128)
+
+        for (let i = 0; i <= 15; i++) {
+            for (let j = 0; j <= 7; j++) {
+                bu.setUint8(i * 8 + j, charCodeArray[i].charCodeAt(j))
+            }
+        }
+
+        let offset = (pCharCode & 0x0F) * 8 // max 15*8=120
+
+        return bu.slice(offset, 8)
+    }
+
+
+
+    // ========== group="EEPROM aus Char-Array im Code brennen"
 
     export enum eCharCodeArray {
         //% block="x00_x0F extendedCharacters"
         x00_x0F,
         x20_x2F, x30_x3F, x40_x4F, x50_x5F, x60_x6F, x70_x7F
     }
-
-
-    // ========== group="EEPROM aus Char-Array im Code brennen"
 
     //% group="EEPROM aus Char-Array im Code brennen"
     //% block="i2c %pADDR auf Page %page <- 128 Byte=16 Zeichen-Codes %pzArray schreiben"
@@ -123,7 +164,7 @@ namespace oledeeprom
         A000 = 0xA000, B000 = 0xB000, C000 = 0xC000, D000 = 0xD000, E000 = 0xE000, F000 = 0xF000
     }
 
-    export   const basicFontx20: string[] = [
+    const basicFontx20: string[] = [
         "\x00\x00\x00\x00\x00\x00\x00\x00", // " "
         "\x00\x00\x5F\x00\x00\x00\x00\x00", // "!"
         "\x00\x00\x07\x00\x07\x00\x00\x00", // """
@@ -141,7 +182,7 @@ namespace oledeeprom
         "\x00\x60\x60\x00\x00\x00\x00\x00", // "."
         "\x00\x20\x10\x08\x04\x02\x00\x00", // "/"
     ]
-    export  const basicFontx30: string[] = [
+    const basicFontx30: string[] = [
         "\x00\x3E\x51\x49\x45\x3E\x00\x00", // "0"
         "\x00\x00\x42\x7F\x40\x00\x00\x00", // "1"
         "\x00\x62\x51\x49\x49\x46\x00\x00", // "2"
@@ -159,7 +200,7 @@ namespace oledeeprom
         "\x00\x41\x22\x14\x08\x00\x00\x00", // ">"
         "\x00\x02\x01\x51\x09\x06\x00\x00", // "?"
     ]
-    export   const basicFontx40: string[] = [
+    const basicFontx40: string[] = [
         "\x00\x32\x49\x79\x41\x3E\x00\x00", // "@" 32
         "\x00\x7E\x09\x09\x09\x7E\x00\x00", // "A"   33
         "\x00\x7F\x49\x49\x49\x36\x00\x00", // "B"
@@ -177,7 +218,7 @@ namespace oledeeprom
         "\x00\x7F\x04\x08\x10\x7F\x00\x00", // "N"
         "\x00\x3E\x41\x41\x41\x3E\x00\x00", // "O"
     ]
-    export   const basicFontx50: string[] = [
+    const basicFontx50: string[] = [
         "\x00\x7F\x09\x09\x09\x06\x00\x00", // "P"
         "\x00\x3E\x41\x51\x21\x5E\x00\x00", // "Q"
         "\x00\x7F\x09\x19\x29\x46\x00\x00", // "R"
@@ -195,7 +236,7 @@ namespace oledeeprom
         "\x00\x04\x02\x01\x02\x04\x00\x00", // "^"
         "\x00\x80\x80\x80\x80\x80\x00\x00", // "_"
     ]
-    export   const basicFontx60: string[] = [
+    const basicFontx60: string[] = [
         "\x00\x01\x02\x04\x00\x00\x00\x00", // "`"
         "\x00\x20\x54\x54\x54\x78\x00\x00", // "a"
         "\x00\x7F\x48\x44\x44\x38\x00\x00", // "b"
@@ -213,7 +254,7 @@ namespace oledeeprom
         "\x00\x7C\x08\x04\x7C\x00\x00\x00", // "n"
         "\x00\x38\x44\x44\x38\x00\x00\x00", // "o"
     ]
-    export  const basicFontx70: string[] = [
+    const basicFontx70: string[] = [
         "\x00\xFC\x24\x24\x18\x00\x00\x00", // "p"
         "\x00\x18\x24\x24\xFC\x00\x00\x00", // "q"
         "\x00\x00\x7C\x08\x04\x00\x00\x00", // "r"
@@ -234,7 +275,7 @@ namespace oledeeprom
 
     //const basicFont: string[] = [];
 
-    export  const extendedCharacters: string[] = [
+    const extendedCharacters: string[] = [
         "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
         "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
         "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",

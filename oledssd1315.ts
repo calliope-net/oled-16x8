@@ -4,6 +4,12 @@ namespace oledssd1315
 /* 230908
 https://github.com/calliope-net/oled-16x8
 
+Grove - OLED Yellow&Blue Display 0.96(SSD1315)
+https://wiki.seeedstudio.com/Grove-OLED-Yellow&Blue-Display-0.96-SSD1315_V1.0/
+
+SparkFun Qwiic EEPROM Breakout - 512Kbit
+https://www.sparkfun.com/products/18355
+
 initdisplaycodes from https://gist.githubusercontent.com/pulsar256/564fda3b9e8fc6b06b89/raw/4bb559d4088e42f7b4859a8533be920434818617/ssd1306_init.c
 
 https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf)
@@ -52,10 +58,10 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     }
 
 
-    // ========== group="OLED 16x8 Display initialisieren"
+    // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
 
-    //% group="OLED 16x8 Display initialisieren"
-    //% block="i2c %pADDR beim Start || invert %pInvert drehen %pFlip zeichensatz %pEEPROM_Startadresse i2c %pADDR_EEPROM"
+    //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
+    //% block="i2c %pADDR beim Start || invert %pInvert drehen %pFlip Zeichensatz %pEEPROM_Startadresse i2c %pADDR_EEPROM"
     //% pADDR.shadow="oledssd1315_eADDR"
     //% pInvert.shadow="toggleOnOff"
     //% pFlip.shadow="toggleOnOff"
@@ -169,22 +175,29 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     }
 
 
-    // ========== group="OLED 16x8 Display"
+    // ========== group="OLED 16x8 Display Text anzeigen"
 
-    export enum eAlign { links, rechts }
+    export enum eAlign {
+        //% block="linksbündig"
+        links,
+        //% block="rechtsbündig"
+        rechts
+    }
 
-    //% group="OLED 16x8 Display"
-    //% block="i2c %pADDR Text 16x8 row %row col %col end %end %pFormat %pText" weight=8
+    //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
+    //% block="i2c %pADDR Text 16x8 Zeile %row von %col bis %end %pText || %pAlign" weight=8
     //% row.min=0 row.max=7 col.min=0 col.max=15 end.min=0 end.max=15 end.defl=15
-    //% inlineInputMode=inline
     //% pADDR.shadow="oledssd1315_eADDR"
-    export function writeText(pADDR: number, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
-        let len = end - col + 1, text: string
+    //% pText.shadow="oledssd1315_text"
+    //% inlineInputMode=inline
+    export function writeText16x8(pADDR: number, row: number, col: number, end: number, pText: any, pAlign?: eAlign) {
+        let text: string = convertToText(pText)
+        let len = end - col + 1
         if (between(row, 0, 7) && between(col, 0, 15) && between(len, 0, 16)) {
 
-            if (pText.length >= len) text = pText.substr(0, len)
-            else if (pText.length < len && pAlign == eAlign.links) { text = pText + "                ".substr(0, len - pText.length) }
-            else if (pText.length < len && pAlign == eAlign.rechts) { text = "                ".substr(0, len - pText.length) + pText }
+            if (text.length >= len) text = text.substr(0, len)
+            else if (text.length < len && pAlign == eAlign.rechts) { text = "                ".substr(0, len - text.length) + text }
+            else /* if (pText.length < len && pAlign == eAlign.links) */ { text = text + "                ".substr(0, len - text.length) }
 
             let bu = Buffer.create(7 + text.length * 8)
             let offset = setCursorBuffer6(bu, 0, row, col) // setCursor
@@ -193,18 +206,20 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         }
     }
 
-    //% group="OLED 16x8 Display"
-    //% block="i2c %pADDR Text 8x16 row %row col %col end %end %pFormat %pText" weight=7
+    // group="OLED 16x8 Display"
+    //% block="i2c %pADDR Text 8x16 Zeile %row von %col bis %end %pText || %pAlign" weight=7
     //% row.min=0 row.max=15 col.min=0 col.max=7 end.min=0 end.max=7 end.defl=7
-    //% inlineInputMode=inline
     //% pADDR.shadow="oledssd1315_eADDR"
-    export function writeTexthoch(pADDR: number, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
-        let len = end - col + 1, text: string
+    //% pText.shadow="oledssd1315_text"
+    //% inlineInputMode=inline
+    export function writeText8x16(pADDR: number, row: number, col: number, end: number, pText: any, pAlign?: eAlign) {
+        let text: string = convertToText(pText)
+        let len = end - col + 1
         if (between(row, 0, 15) && between(col, 0, 7) && between(len, 0, 8)) {
 
-            if (pText.length >= len) text = pText.substr(0, len)
-            else if (pText.length < len && pAlign == eAlign.links) { text = pText + "        ".substr(0, len - pText.length) }
-            else if (pText.length < len && pAlign == eAlign.rechts) { text = "        ".substr(0, len - pText.length) + pText }
+            if (text.length >= len) text = text.substr(0, len)
+            else if (text.length < len && pAlign == eAlign.rechts) { text = "        ".substr(0, len - text.length) + text }
+            else /* if (text.length < len && pAlign == eAlign.links) */ { text = text + "        ".substr(0, len - text.length) }
 
             let bu = Buffer.create(7 + 8) // 7 CONTROL+command + 8 text
             let offset = setCursorBuffer6(bu, 0, 7 - col, row) // setCursor
@@ -222,23 +237,17 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
 
-    //% group="OLED 16x8 Display"
-    //% block="i2c %pADDR Cursor row %row col %col" weight=6
+    // group="OLED 16x8 Display"
+    //% block="i2c %pADDR Cursor Zeile %row von %col" weight=6
     //% row.min=0 row.max=7 col.min=0 col.max=15
     //% pADDR.shadow="oledssd1315_eADDR"
     export function setCursor(pADDR: number, row: number, col: number) {
-        //write0x80Byte(pADDR, (row == 0 ? col | 0x80 : col | 0xc0))
-        let bu = Buffer.create(6)
-        setCursorBuffer6(bu, 0, row, col)
-        /*
-        bu.setUint8(0, 0x00) // CONTROL mehrere command
-        bu.setUint8(1, 0xB0 | (row & 0x07)) // page number 0-7 B0-B7
-        bu.setUint8(2, 0x00 | (col << 3) & 0x0F)// (col % 16)) // lower start column address 0x00-0x0F 4 Bit
-        bu.setUint8(3, 0x10 | (col >> 1) & 0x07) // (col >> 4) upper start column address 0x10-0x17 3 Bit
-        */
-        oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
-
-        control.waitMicros(50)
+        if (between(row, 0, 7) && between(col, 0, 15)) {
+            let bu = Buffer.create(6)
+            setCursorBuffer6(bu, 0, row, col)
+            oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+            control.waitMicros(50)
+        }
     }
 
     function setCursorBuffer6(bu: Buffer, offset: number, row: number, col: number) {
@@ -254,11 +263,13 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         //                    0x40               // CONTROL+Display Data
     }
 
-    //% group="OLED 16x8 Display"
+    // group="OLED 16x8 Display"
     //% block="i2c %pADDR Text %pText" weight=4
     //% pADDR.shadow="oledssd1315_eADDR"
-    export function writeText1(pADDR: number, pText: string) {
-        writeTextBuffer1(pADDR, Buffer.create(1 + pText.length * 8), 0, pText)
+    //% pText.shadow="oledssd1315_text"
+    export function writeText1(pADDR: number, pText: any) {
+        let text: string = convertToText(pText)
+        writeTextBuffer1(pADDR, Buffer.create(1 + text.length * 8), 0, text)
     }
 
     function writeTextBuffer1(pADDR: eADDR, bu: Buffer, offset: number, pText: string) {
@@ -274,9 +285,10 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         control.waitMicros(50)
     }
 
-    // ========== group="OLED 16x8 Display löschen"
 
-    //% group="OLED 16x8 Display löschen"
+    // ========== group="Display löschen"
+
+    //% group="Display löschen"
     //% block="i2c %pADDR Display löschen || von Zeile %vonZeile bis Zeile %bisZeile mit Zeichencode %charcode" weight=2
     //% pADDR.shadow="oledssd1315_eADDR"
     //% vonZeile.min=0 vonZeile.max=7 vonZeile.defl=0
@@ -300,43 +312,50 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         }
     }
 
-    //% group="OLED 16x8 Display löschen"
-    //% block="i2c %pADDR Display füllen %pStartAdresse" weight=1
+    // ========== group="kopiert 1024 Byte vom EEPROM auf ein Display (Text, Bild)"
+
+    //% group="kopiert 1024 Byte vom EEPROM auf ein Display (Text, Bild)"
+    //% block="i2c %pADDR Display 16x8 füllen %pEEPROM_Startadresse || von Zeile %vonZeile bis Zeile %bisZeile" weight=1
     //% pADDR.shadow="oledssd1315_eADDR"
     //% pEEPROM_Startadresse.shadow="oledssd1315_eEEPROM_Startadresse"
-    export function fillScreen(pADDR: number, pEEPROM_Startadresse: number) {
-        let buEEPROM = Buffer.create(2)
-        //buEEPROM.setNumber(NumberFormat.UInt16BE, 0, pEEPROM_Startadresse)// + pCharCode * 8)
+    //% vonZeile.min=0 vonZeile.max=7 vonZeile.defl=0
+    //% bisZeile.min=0 bisZeile.max=7 bisZeile.defl=7
+    //% inlineInputMode=inline
+    export function fillScreen(pADDR: number, pEEPROM_Startadresse: number, vonZeile?: number, bisZeile?: number) {
+        if (between(vonZeile, 0, 7) && between(bisZeile, 0, 7)) {
+            let buEEPROM = Buffer.create(2)
 
-        let buDisplay = Buffer.create(135)
-        let offsetDisplay = setCursorBuffer6(buDisplay, 0, 0, 0)
-        buDisplay.setUint8(offsetDisplay++, eCONTROL.x40_Data) // CONTROL+DisplayData
+            let buDisplay = Buffer.create(135)
+            let offsetDisplay = setCursorBuffer6(buDisplay, 0, 0, 0)
+            buDisplay.setUint8(offsetDisplay++, eCONTROL.x40_Data) // CONTROL+DisplayData
 
+            for (let page = vonZeile; page <= bisZeile; page++) {
 
-        for (let page = 0; page <= 7; page++) {
+                buEEPROM.setNumber(NumberFormat.UInt16BE, 0, pEEPROM_Startadresse + page * 128)
 
-            buEEPROM.setNumber(NumberFormat.UInt16BE, 0, pEEPROM_Startadresse + page * 128)
+                buDisplay.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
+                //offsetDisplay = 7 // offset 7-135 sind 128 Byte für die Pixel in einer Zeile
 
-            buDisplay.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
-            //offsetDisplay = 7 // offset 7-135 sind 128 Byte für die Pixel in einer Zeile
+                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(oledssd1315_ADDR_EEPROM, buEEPROM)
 
-            oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(oledssd1315_ADDR_EEPROM, buEEPROM)
-
-            buDisplay.write(7, pins.i2cReadBuffer(oledssd1315_ADDR_EEPROM, 128))
-
-
-            /* 
-            for (let charCode = 0; charCode <= 15; charCode++) {
-                // schreibt 16 Zeichen je 8 Pixel in den Buffer(7-135)
-                buDisplay.write(offsetDisplay, getPixel8ByteEEPROM(pADDR, page * 16 + charCode, eDrehen.nicht))
-                offsetDisplay += 8
-            } 
-            */
-            oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, buDisplay)
+                buDisplay.write(7, pins.i2cReadBuffer(oledssd1315_ADDR_EEPROM, 128))
+                /* 
+                for (let charCode = 0; charCode <= 15; charCode++) {
+                    // schreibt 16 Zeichen je 8 Pixel in den Buffer(7-135)
+                    buDisplay.write(offsetDisplay, getPixel8ByteEEPROM(pADDR, page * 16 + charCode, eDrehen.nicht))
+                    offsetDisplay += 8
+                } 
+                */
+                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, buDisplay)
+            }
         }
     }
 
 
+
+    // ========== advanced=true
+
+    // ========== group="Display Command"
 
     export enum eDisplayCommand {
         //% block="AF AE Set Display ON/OFF"
@@ -350,7 +369,8 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         //% block="A4 A5 Entire Display"
         ENTIRE_ON
     }
-    //% block="i2c %pADDR Display Command %pDisplayCommand %pON" weight=1
+    //% group="Display Command"
+    //% block="i2c %pADDR Display Command %pDisplayCommand %pON" advanced=true
     //% pADDR.shadow="oledssd1315_eADDR"
     //% pON.shadow="toggleOnOff"
     export function displayCommand(pADDR: number, pDisplayCommand: eDisplayCommand, pON: boolean) {
@@ -426,7 +446,9 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
 
-
+    //% group="Text" advanced=true
+    //% blockId=oledssd1315_text block="%s"
+    export function oledssd1315_text(s: string): string { return s }
 
 
     // ========== group="Logik"

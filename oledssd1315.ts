@@ -9,8 +9,9 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
 
 
 */ {
-    export enum eADDR { OLED_16x8 = 0x3C, OLED_16x8_x3D = 0x3D }
     // For the SSD1315, the slave address is either "b0111100" or "b0111101" by changing the SA0 to LOW or HIGH (D/C pin acts as SA0).
+    export enum eADDR { OLED_16x8 = 0x3C, OLED_16x8_x3D = 0x3D }
+    export enum eADDR_EEPROM { EEPROM = 0x50 }
 
     enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
         // CONTROL ist immer das 1. Byte im Buffer
@@ -22,7 +23,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     export enum eCommand {
         A0_SEGMENT_REMAP = 0xA0, // column address 0 is mapped to SEG0 (RESET) // using 0xA0 will flip screen
         A1_SEGMENT_REMAP = 0xA1, // column address 127 is mapped to SEG0
-        A4_ENTITE_DISPLAY_ON = 0xA4,
+        A4_ENTIRE_DISPLAY_ON = 0xA4,
         A5_RAM_CONTENT_DISPLAY = 0xA5,
         A6_NORMAL_DISPLAY = 0xA6, // invert Hintergrund schwarz
         A7_INVERT_DISPLAY = 0xA7, // invert Hintergrund leuchtet
@@ -32,20 +33,6 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         C8_COM_SCAN_DEC = 0xC8, // remapped mode Scan from COM[N-1] to COM0
     }
 
-
-    /* function write2Byte(pADDR: eADDR, b0: number, b1: number) {
-        let bu = pins.createBuffer(3)
-        bu.setUint8(0, 0x00)
-        bu.setUint8(1, b0)
-        bu.setUint8(2, b1)
-        pins.i2cWriteBuffer(pADDR, bu)
-    }*/
-    /* function writeCommandx00(pADDR: eADDR, pCommand: eCommand) {
-        let bu = pins.createBuffer(2)
-        bu.setUint8(0, 0x00)
-        bu.setUint8(1, pCommand)
-        pins.i2cWriteBuffer(pADDR, bu)
-    } */
 
     // ========== group="OLED 16x8 Display initialisieren"
 
@@ -152,7 +139,6 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     export function writeText(pADDR: number, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
         let len = end - col + 1, text: string
         if (between(row, 0, 7) && between(col, 0, 15) && between(len, 0, 16)) {
-            //if (col >= 0 && col <= 15 && l > 0 && l <= 16) {
 
             if (pText.length >= len) text = pText.substr(0, len)
             else if (pText.length < len && pAlign == eAlign.left) { text = pText + "                ".substr(0, len - pText.length) }
@@ -164,6 +150,34 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
             writeTextBuffer1(pADDR, bu, offset, text)
         }
     }
+
+    //% group="OLED 16x8 Display"
+    //% block="i2c %pADDR writeText hoch row %row col %col end %end align %pFormat Text %pText" weight=7
+    //% row.min=0 row.max=15 col.min=0 col.max=7 end.min=0 end.max=7 end.defl=7
+    //% inlineInputMode=inline
+    //% pADDR.shadow="oledssd1315_eADDR"
+    export function writeTexthoch(pADDR: number, row: number, col: number, end: number, pAlign: eAlign, pText: string) {
+        let len = end - col + 1, text: string
+        if (between(row, 0, 15) && between(col, 0, 7) && between(len, 0, 8)) {
+
+            if (pText.length >= len) text = pText.substr(0, len)
+            else if (pText.length < len && pAlign == eAlign.left) { text = pText + "        ".substr(0, len - pText.length) }
+            else if (pText.length < len && pAlign == eAlign.right) { text = "        ".substr(0, len - pText.length) + pText }
+
+            let bu = Buffer.create(7 + 8) // 7 CONTROL+command + 8 text
+            let offset = setCursorBuffer6(bu, 0, 7 - col, row) // setCursor
+            bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
+
+            for (let j = 0; j < text.length; j++) {
+                bu.setUint8(1, 0xB0 | (7 - (col + j)) & 0x07)      // page number 7-0 B7-B0
+                bu.write(8, getPixel8ByteEEPROM(text.charCodeAt(j), eStartAdresse.F000))
+
+                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
+            }
+            control.waitMicros(50)
+        }
+    }
+
 
 
     //% group="OLED 16x8 Display"
@@ -211,14 +225,8 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         let font: string
         bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
         for (let j = 0; j < pText.length; j++) {
-
             bu.write(offset, getPixel8ByteEEPROM(pText.charCodeAt(j), eStartAdresse.F800))
             offset += 8
-            /* font = basicFont[pText.charCodeAt(j) - 32]
-
-            for (let i = 0; i < 8; i++) {
-                bu.setUint8(offset++, font.charCodeAt(i))
-            } */
         }
         oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
         control.waitMicros(50)
@@ -293,7 +301,7 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
         switch (pDisplayCommand) {
             case eDisplayCommand.ON: { bu.setUint8(1, (pON ? eCommand.AF_DISPLAY_ON : eCommand.AE_DISPLAY_OFF)); break; }
             case eDisplayCommand.INVERS: { bu.setUint8(1, (pON ? eCommand.A7_INVERT_DISPLAY : eCommand.A6_NORMAL_DISPLAY)); break; }
-            case eDisplayCommand.ENTIRE_ON: { bu.setUint8(1, (pON ? eCommand.A4_ENTITE_DISPLAY_ON : eCommand.A5_RAM_CONTENT_DISPLAY)); break; }
+            case eDisplayCommand.ENTIRE_ON: { bu.setUint8(1, (pON ? eCommand.A4_ENTIRE_DISPLAY_ON : eCommand.A5_RAM_CONTENT_DISPLAY)); break; }
             case eDisplayCommand.FLIP: {
                 //bu = pins.createBuffer(3)
                 //bu.setUint8(0, eCONTROL.x00_xCom)
@@ -310,33 +318,22 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
     export enum eStartAdresse { F800 = 0xF800, FC00 = 0xFC00, F000 = 0xF000, F400 = 0xF400 }
 
     function getPixel8ByteEEPROM(pCharCode: number, pStartAdresse: eStartAdresse) {
-        //let startAdr = pStartAdresse + pCharCode * 8 // max 15*8=120
-        /* switch (pCharCode & 0xF0) {
-            case 0x20: { startAdr = 0xF900; break; } // 16 string-Elemente je 8 Byte = 128
-            case 0x30: { startAdr = 0xF980; break; }
-            case 0x40: { startAdr = 0xFA00; break; }
-            case 0x50: { startAdr = 0xFA80; break; }
-            case 0x60: { startAdr = 0xFB00; break; }
-            case 0x70: { startAdr = 0xFB80; break; }
-        }
-        let offset = (pCharCode & 0x0F) * 8 // max 15*8=120
-        */
         let bu = Buffer.create(2)
         bu.setNumber(NumberFormat.UInt16BE, 0, pStartAdresse + pCharCode * 8)
         oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(eADDR_EEPROM.EEPROM, bu, true)
 
-        if (pStartAdresse >= eStartAdresse.F800) {
-            return pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8)
-        } else {
-            return drehen(pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8))
-        }
+        //if (pStartAdresse >= eStartAdresse.F800) {
+        return pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8)
+        //} else {
+        //    return drehen(pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8))
+        //}
     }
 
     function drehen(b0: Buffer) { // Buffer mit 8 Byte
         let b1 = Buffer.create(8)
         b1.fill(0b00000000)
 
-        /* for (let b0offset = 0; b0offset <= 7; b0offset++) {
+        /* for (let b0offset = 0; b0offset <= 7; b0offset++) { // 8x8 Bit 1/2 nach rechts drehen
             if ((b0.getUint8(b0offset) & 2 ** 0) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 0) }
             if ((b0.getUint8(b0offset) & 2 ** 1) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 1) }
             if ((b0.getUint8(b0offset) & 2 ** 2) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 2) }
@@ -362,15 +359,18 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
 
 
 
+
+
+
     function getPixel8Byte_(pCharCode: number) {
         let zArray: string[]
         switch (pCharCode & 0xF0) {
-            case 0x20: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
-            case 0x30: { zArray = basicFontx30; break; }
-            case 0x40: { zArray = basicFontx40; break; }
-            case 0x50: { zArray = basicFontx50; break; }
-            case 0x60: { zArray = basicFontx60; break; }
-            case 0x70: { zArray = basicFontx70; break; }
+            case 0x20: { zArray = oledeeprom.basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
+            case 0x30: { zArray = oledeeprom.basicFontx30; break; }
+            case 0x40: { zArray = oledeeprom.basicFontx40; break; }
+            case 0x50: { zArray = oledeeprom.basicFontx50; break; }
+            case 0x60: { zArray = oledeeprom.basicFontx60; break; }
+            case 0x70: { zArray = oledeeprom.basicFontx70; break; }
         }
         let bu = Buffer.create(128)
         //let o = 0
@@ -384,173 +384,8 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
 
         return bu.slice(offset, 8)
     }
-    /* 
-        export enum ezArray { x20_x2F, x30_x3F, x40_x4F, x50_x5F, x60_x6F, x70_x7F }
-    
-    
-        //% group="EEPROM"
-        //% block="i2c %pADDR EEPROM schreiben %x4 %x3 %x2 Zeichencodes %pzArray"
-        //% inlineInputMode=inline
-        export function writeEEPROM(pADDR: eADDR_EEPROM, x4: H4, x3: H3, x2: H2, pzArray: ezArray) {
-            let zArray: string[] = []
-            switch (pzArray) {
-                case ezArray.x20_x2F: { zArray = basicFontx20; break; } // 16 string-Elemente je 8 Byte = 128
-                case ezArray.x30_x3F: { zArray = basicFontx30; break; }
-                case ezArray.x40_x4F: { zArray = basicFontx40; break; }
-                case ezArray.x50_x5F: { zArray = basicFontx50; break; }
-                case ezArray.x60_x6F: { zArray = basicFontx60; break; }
-                case ezArray.x70_x7F: { zArray = basicFontx70; break; }
-            }
-            if (zArray.length == 16) {
-                let bu = Buffer.create(130) // 130
-                bu.setNumber(NumberFormat.UInt16BE, 0, x4 + x3 + x2)
-                for (let i = 0; i <= 15; i++) {
-                    for (let j = 0; j <= 7; j++) {
-                        bu.setUint8(2 + i * 8 + j, zArray[i].charCodeAt(j))
-                    }
-                }
-                oledssd1315_i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
-            }
-        }
-     */
-    export enum eADDR_EEPROM { EEPROM = 0x50 }
 
-    export enum H2 {
-        x00 = 0x00, /*x10 = 0x10, x20 = 0x20, x30 = 0x30, x40 = 0x40, x50 = 0x50, x60 = 0x60, x70 = 0x70,*/
-        x80 = 0x80 /*, x90 = 0x90, xA0 = 0xA0, xB0 = 0xB0, xC0 = 0xC0, xD0 = 0xD0, xE0 = 0xE0, xF0 = 0xF0*/
-    }
-    export enum H3 {
-        /* x000 = 0x000, x100 = 0x100, x200 = 0x200, x300 = 0x300, x400 = 0x400, x500 = 0x500, x600 = 0x600, x700 = 0x700, */
-        x800 = 0x800, x900 = 0x900, xA00 = 0xA00, xB00 = 0xB00, xC00 = 0xC00, xD00 = 0xD00, xE00 = 0xE00, xF00 = 0xF00
-    }
-    export enum H4 {
-        /* x0000 = 0x0000, x1000 = 0x1000, x2000 = 0x2000, x3000 = 0x3000, x4000 = 0x4000, x5000 = 0x5000, x6000 = 0x6000, x7000 = 0x7000,
-        x8000 = 0x8000, x9000 = 0x9000, xA000 = 0xA000, xB000 = 0xB000, xC000 = 0xC000, xD000 = 0xD000, xE000 = 0xE000,  */
-        xF000 = 0xF000
-    }
 
-    const basicFontx20: string[] = [
-        "\x00\x00\x00\x00\x00\x00\x00\x00", // " "
-        "\x00\x00\x5F\x00\x00\x00\x00\x00", // "!"
-        "\x00\x00\x07\x00\x07\x00\x00\x00", // """
-        "\x00\x14\x7F\x14\x7F\x14\x00\x00", // "#"
-        "\x00\x24\x2A\x7F\x2A\x12\x00\x00", // "$"
-        "\x00\x23\x13\x08\x64\x62\x00\x00", // "%"
-        "\x00\x36\x49\x55\x22\x50\x00\x00", // "&"
-        "\x00\x00\x05\x03\x00\x00\x00\x00", // "'"
-        "\x00\x1C\x22\x41\x00\x00\x00\x00", // "("
-        "\x00\x41\x22\x1C\x00\x00\x00\x00", // ")"
-        "\x00\x08\x2A\x1C\x2A\x08\x00\x00", // "*"
-        "\x00\x08\x08\x3E\x08\x08\x00\x00", // "+"
-        "\x00\xA0\x60\x00\x00\x00\x00\x00", // ","
-        "\x00\x08\x08\x08\x08\x08\x00\x00", // "-"
-        "\x00\x60\x60\x00\x00\x00\x00\x00", // "."
-        "\x00\x20\x10\x08\x04\x02\x00\x00", // "/"
-    ]
-    const basicFontx30: string[] = [
-        "\x00\x3E\x51\x49\x45\x3E\x00\x00", // "0"
-        "\x00\x00\x42\x7F\x40\x00\x00\x00", // "1"
-        "\x00\x62\x51\x49\x49\x46\x00\x00", // "2"
-        "\x00\x22\x41\x49\x49\x36\x00\x00", // "3"
-        "\x00\x18\x14\x12\x7F\x10\x00\x00", // "4"
-        "\x00\x27\x45\x45\x45\x39\x00\x00", // "5"
-        "\x00\x3C\x4A\x49\x49\x30\x00\x00", // "6"
-        "\x00\x01\x71\x09\x05\x03\x00\x00", // "7"
-        "\x00\x36\x49\x49\x49\x36\x00\x00", // "8"
-        "\x00\x06\x49\x49\x29\x1E\x00\x00", // "9"
-        "\x00\x00\x36\x36\x00\x00\x00\x00", // ":"
-        "\x00\x00\xAC\x6C\x00\x00\x00\x00", // ";"
-        "\x00\x08\x14\x22\x41\x00\x00\x00", // "<"
-        "\x00\x14\x14\x14\x14\x14\x00\x00", // "="
-        "\x00\x41\x22\x14\x08\x00\x00\x00", // ">"
-        "\x00\x02\x01\x51\x09\x06\x00\x00", // "?"
-    ]
-    const basicFontx40: string[] = [
-        "\x00\x32\x49\x79\x41\x3E\x00\x00", // "@" 32
-        "\x00\x7E\x09\x09\x09\x7E\x00\x00", // "A"   33
-        "\x00\x7F\x49\x49\x49\x36\x00\x00", // "B"
-        "\x00\x3E\x41\x41\x41\x22\x00\x00", // "C"
-        "\x00\x7F\x41\x41\x22\x1C\x00\x00", // "D"
-        "\x00\x7F\x49\x49\x49\x41\x00\x00", // "E"
-        "\x00\x7F\x09\x09\x09\x01\x00\x00", // "F"
-        "\x00\x3E\x41\x41\x51\x72\x00\x00", // "G"
-        "\x00\x7F\x08\x08\x08\x7F\x00\x00", // "H"
-        "\x00\x41\x7F\x41\x00\x00\x00\x00", // "I"
-        "\x00\x20\x40\x41\x3F\x01\x00\x00", // "J"
-        "\x00\x7F\x08\x14\x22\x41\x00\x00", // "K"
-        "\x00\x7F\x40\x40\x40\x40\x00\x00", // "L"
-        "\x00\x7F\x02\x0C\x02\x7F\x00\x00", // "M"
-        "\x00\x7F\x04\x08\x10\x7F\x00\x00", // "N"
-        "\x00\x3E\x41\x41\x41\x3E\x00\x00", // "O"
-    ]
-    const basicFontx50: string[] = [
-        "\x00\x7F\x09\x09\x09\x06\x00\x00", // "P"
-        "\x00\x3E\x41\x51\x21\x5E\x00\x00", // "Q"
-        "\x00\x7F\x09\x19\x29\x46\x00\x00", // "R"
-        "\x00\x26\x49\x49\x49\x32\x00\x00", // "S"
-        "\x00\x01\x01\x7F\x01\x01\x00\x00", // "T"
-        "\x00\x3F\x40\x40\x40\x3F\x00\x00", // "U"
-        "\x00\x1F\x20\x40\x20\x1F\x00\x00", // "V"
-        "\x00\x3F\x40\x38\x40\x3F\x00\x00", // "W"
-        "\x00\x63\x14\x08\x14\x63\x00\x00", // "X"
-        "\x00\x03\x04\x78\x04\x03\x00\x00", // "Y"
-        "\x00\x61\x51\x49\x45\x43\x00\x00", // "Z"
-        "\x00\x7F\x41\x41\x00\x00\x00\x00", // """
-        "\x00\x02\x04\x08\x10\x20\x00\x00", // "\"
-        "\x00\x41\x41\x7F\x00\x00\x00\x00", // """
-        "\x00\x04\x02\x01\x02\x04\x00\x00", // "^"
-        "\x00\x80\x80\x80\x80\x80\x00\x00", // "_"
-    ]
-    const basicFontx60: string[] = [
-        "\x00\x01\x02\x04\x00\x00\x00\x00", // "`"
-        "\x00\x20\x54\x54\x54\x78\x00\x00", // "a"
-        "\x00\x7F\x48\x44\x44\x38\x00\x00", // "b"
-        "\x00\x38\x44\x44\x28\x00\x00\x00", // "c"
-        "\x00\x38\x44\x44\x48\x7F\x00\x00", // "d"
-        "\x00\x38\x54\x54\x54\x18\x00\x00", // "e"
-        "\x00\x08\x7E\x09\x02\x00\x00\x00", // "f"
-        "\x00\x18\xA4\xA4\xA4\x7C\x00\x00", // "g"
-        "\x00\x7F\x08\x04\x04\x78\x00\x00", // "h"
-        "\x00\x00\x7D\x00\x00\x00\x00\x00", // "i"
-        "\x00\x80\x84\x7D\x00\x00\x00\x00", // "j"
-        "\x00\x7F\x10\x28\x44\x00\x00\x00", // "k"
-        "\x00\x41\x7F\x40\x00\x00\x00\x00", // "l"
-        "\x00\x7C\x04\x18\x04\x78\x00\x00", // "m"
-        "\x00\x7C\x08\x04\x7C\x00\x00\x00", // "n"
-        "\x00\x38\x44\x44\x38\x00\x00\x00", // "o"
-    ]
-    const basicFontx70: string[] = [
-        "\x00\xFC\x24\x24\x18\x00\x00\x00", // "p"
-        "\x00\x18\x24\x24\xFC\x00\x00\x00", // "q"
-        "\x00\x00\x7C\x08\x04\x00\x00\x00", // "r"
-        "\x00\x48\x54\x54\x24\x00\x00\x00", // "s"
-        "\x00\x04\x7F\x44\x00\x00\x00\x00", // "t"
-        "\x00\x3C\x40\x40\x7C\x00\x00\x00", // "u"
-        "\x00\x1C\x20\x40\x20\x1C\x00\x00", // "v"
-        "\x00\x3C\x40\x30\x40\x3C\x00\x00", // "w"
-        "\x00\x44\x28\x10\x28\x44\x00\x00", // "x"
-        "\x00\x1C\xA0\xA0\x7C\x00\x00\x00", // "y"
-        "\x00\x44\x64\x54\x4C\x44\x00\x00", // "z"
-        "\x00\x08\x36\x41\x00\x00\x00\x00", // "{"
-        "\x00\x00\x7F\x00\x00\x00\x00\x00", // "|"
-        "\x00\x41\x36\x08\x00\x00\x00\x00", // "}"
-        "\x00\x02\x01\x01\x02\x01\x00\x00", // "~" 126
-        "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF"  // 127
-    ]
-
-    /* const basicFont: string[] = [];
-
-    const extendedCharacters: string[] = [
-        "\x00\x7D\x0A\x09\x0A\x7D\x00\x00", // "Ä"
-        "\x00\x3D\x42\x41\x42\x3D\x00\x00", // "Ö"
-        "\x00\x3D\x40\x40\x40\x3D\x00\x00", // "Ü"
-        "\x00\x21\x54\x54\x55\x78\x00\x00", // "ä"
-        "\x00\x39\x44\x44\x39\x00\x00\x00", // "ö"
-        "\x00\x3D\x40\x40\x7D\x00\x00\x00", // "ü"
-        "\x00\xFE\x09\x49\x36\x00\x00\x00", // "ß"
-        "\x00\x14\x3E\x55\x55\x55\x14\x00", // "€"
-        "\x00\x02\x05\x02\x00\x00\x00\x00"  // "°"
-    ]; */
 
     // ========== group="Logik"
 

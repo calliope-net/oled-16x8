@@ -123,7 +123,7 @@ namespace oledeeprom
         A000 = 0xA000, B000 = 0xB000, C000 = 0xC000, D000 = 0xD000, E000 = 0xE000, F000 = 0xF000
     }
 
-    const basicFontx20: string[] = [
+    export   const basicFontx20: string[] = [
         "\x00\x00\x00\x00\x00\x00\x00\x00", // " "
         "\x00\x00\x5F\x00\x00\x00\x00\x00", // "!"
         "\x00\x00\x07\x00\x07\x00\x00\x00", // """
@@ -141,7 +141,7 @@ namespace oledeeprom
         "\x00\x60\x60\x00\x00\x00\x00\x00", // "."
         "\x00\x20\x10\x08\x04\x02\x00\x00", // "/"
     ]
-    const basicFontx30: string[] = [
+    export  const basicFontx30: string[] = [
         "\x00\x3E\x51\x49\x45\x3E\x00\x00", // "0"
         "\x00\x00\x42\x7F\x40\x00\x00\x00", // "1"
         "\x00\x62\x51\x49\x49\x46\x00\x00", // "2"
@@ -159,7 +159,7 @@ namespace oledeeprom
         "\x00\x41\x22\x14\x08\x00\x00\x00", // ">"
         "\x00\x02\x01\x51\x09\x06\x00\x00", // "?"
     ]
-    const basicFontx40: string[] = [
+    export   const basicFontx40: string[] = [
         "\x00\x32\x49\x79\x41\x3E\x00\x00", // "@" 32
         "\x00\x7E\x09\x09\x09\x7E\x00\x00", // "A"   33
         "\x00\x7F\x49\x49\x49\x36\x00\x00", // "B"
@@ -177,7 +177,7 @@ namespace oledeeprom
         "\x00\x7F\x04\x08\x10\x7F\x00\x00", // "N"
         "\x00\x3E\x41\x41\x41\x3E\x00\x00", // "O"
     ]
-    const basicFontx50: string[] = [
+    export   const basicFontx50: string[] = [
         "\x00\x7F\x09\x09\x09\x06\x00\x00", // "P"
         "\x00\x3E\x41\x51\x21\x5E\x00\x00", // "Q"
         "\x00\x7F\x09\x19\x29\x46\x00\x00", // "R"
@@ -195,7 +195,7 @@ namespace oledeeprom
         "\x00\x04\x02\x01\x02\x04\x00\x00", // "^"
         "\x00\x80\x80\x80\x80\x80\x00\x00", // "_"
     ]
-    const basicFontx60: string[] = [
+    export   const basicFontx60: string[] = [
         "\x00\x01\x02\x04\x00\x00\x00\x00", // "`"
         "\x00\x20\x54\x54\x54\x78\x00\x00", // "a"
         "\x00\x7F\x48\x44\x44\x38\x00\x00", // "b"
@@ -213,7 +213,7 @@ namespace oledeeprom
         "\x00\x7C\x08\x04\x7C\x00\x00\x00", // "n"
         "\x00\x38\x44\x44\x38\x00\x00\x00", // "o"
     ]
-    const basicFontx70: string[] = [
+    export  const basicFontx70: string[] = [
         "\x00\xFC\x24\x24\x18\x00\x00\x00", // "p"
         "\x00\x18\x24\x24\xFC\x00\x00\x00", // "q"
         "\x00\x00\x7C\x08\x04\x00\x00\x00", // "r"
@@ -234,7 +234,7 @@ namespace oledeeprom
 
     //const basicFont: string[] = [];
 
-    const extendedCharacters: string[] = [
+    export  const extendedCharacters: string[] = [
         "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
         "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
         "\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",

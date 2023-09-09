@@ -61,7 +61,7 @@ keine Daten zurück gelesen werden (können). Die Farben Yellow&Blue sind fest: 
 Der Block muss für jedes Display aufgerufen werden. Dabei ist die richtige i2c Adresse einzustellen.
 Mit optionalen Parametern kann eingestellt werden:
 * **invert** stellt ein, ob die Zeichen leuchten oder der Hintergrund.
-* **drehen** stellt das Display auf den Kopf, wenn es anders herum eingebaut (und die gelbe Farbe unten) ist.
+* **drehen** wenn das Display anders herum eingebaut (und die gelbe Farbe unten) ist.
 * **Zeichensatz** Anfangsadresse im EEPROM. Von hier werden 2048 Bytes für 256 Zeichen-Codes verwendet.
   Jedes Display kann einen anderen Zeichensatz benutzen. Im Beispiel ist für das Display im Hochformat 8x16
   ein Zeichensatz eingestellt, der auch 1/4 gedrehte Zeichen enthält. Die Anfangsadresse im EEPROM wird

@@ -1,7 +1,15 @@
 
 > Diese Seite bei [https://calliope-net.github.io/oled-16x8/](https://calliope-net.github.io/oled-16x8/) öffnen.
 
-![](oled-16x8-640.png)
+### Calliope Erweiterung für i2c OLED Displays, Zeichensatz im EEPROM:
+
+> OLED neu gedacht - 2 Displays gleichzeitig (2x16x8=265 Zeichen) - EEPROM - 1 Stecker - i2c-Bus
+
+> Querformat 16x8 - Hochformat 8x16 - mehrere Zeichensätze je 256 Zeichen - Bilder im EEPROM
+
+> funktioniert mit jeder (Speicher-) Konfiguration und Version (ab 1.3) von Calliope ohne Einschränkungen
+
+![](oled-16x8-640.jpg)
  
 ### Calliope Erweiterung für das i2c Modul:
 

@@ -41,7 +41,7 @@ Dieses Repository kann als **Erweiterung** in MakeCode hinzugefügt werden.
 
 ![](blocks.png)
 
-### Beschreibung der Erweiterung für 'Grove - OLED Display'
+### Beschreibung der Erweiterung für 'Grove - OLED Displays'
 
 Der vorhandene Code für OLED Displays wurde bezüglich i2c-Bus-Kommunikation so stark optimiert,
 dass davon nichts übrig blieb. Die Menge der über den i2c Bus übertragenen Bytes wurde erheblich reduziert,

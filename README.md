@@ -90,7 +90,14 @@ So können übersichtlich mehrere Werte von 0 bis 3, der nächste von 4 bis 9 un
 
 Der Parameter Text ist vom Typ any und nimmt auch Blöcke vom Typ number oder boolean.
 
+#### EEPROM direkt auf Display kopieren
+
 ![](ab.png)
+
+Genau wie beim Löschen können auch Bytes aus dem EEPROM einfach auf das Display kopiert werden. Der Speicherbereich mit
+dem Zeichengenerator schreibt dann alle Zeichen in der Reihenfolge ihres Zeichencodes auf das Display. Und weil 128 Zeichen
+drauf passen, ist das der ganze (ASCII-) Zeichensatz. Es kann auch jede Zeile einzeln aus einem anderen Speicherbereich 
+geholt werden. Auch Bilder können damit angezeigt werden, aber die müssen vorher erst mal in den EEPROM programmiert werden.
 
 ### Erweiterungen
 

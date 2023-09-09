@@ -92,7 +92,7 @@ So können übersichtlich mehrere Werte von 0 bis 3, der nächste von 4 bis 9 un
 
 Der Parameter Text ist vom Typ *any* und nimmt auch Blöcke vom Typ *number* oder *boolean*.
 
-#### EEPROM direkt auf Display kopieren
+#### EEPROM direkt auf das Display kopieren
 
 ![](ab.png)
 

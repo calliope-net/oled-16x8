@@ -74,7 +74,7 @@ Ohne optionale Parameter wird das gesamte Display gelöscht. Tatsächlich werden
 Es können einzelne Zeilen gelöscht und ein anderes Zeichen angegeben werden, mit dem die Zeilen gefüllt werden.
 
 Der Cursor kann an eine Stelle gesetzt werden und Text wird ab Cursorpasition geschrieben.
-Der Parameter Text ist vom Typ any und nimmt auch Blöcke vom Typ number oder boolean.
+Der Parameter Text ist vom Typ *any* und nimmt auch Blöcke vom Typ *number* oder *boolean*.
 
 #### Text in einen *festen Bereich* schreiben
 
@@ -88,7 +88,7 @@ So können viele Messwerte ihren *festen Bereich* auf dem Display haben.
 Der *feste Bereich* wird durch die Zeile und die Anfangs- und End-Position in der Spalte definiert - nicht durch die Länge.
 So können übersichtlich mehrere Werte von 0 bis 3, der nächste von 4 bis 9 und der letzte von 10 bis 15 definiert werden.
 
-Der Parameter Text ist vom Typ any und nimmt auch Blöcke vom Typ number oder boolean.
+Der Parameter Text ist vom Typ *any* und nimmt auch Blöcke vom Typ *number* oder *boolean*.
 
 #### EEPROM direkt auf Display kopieren
 

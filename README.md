@@ -1,6 +1,8 @@
 
 > Diese Seite bei [https://calliope-net.github.io/oled-16x8/](https://calliope-net.github.io/oled-16x8/) öffnen.
-> 
+
+![](oled-16x8-640.png)
+ 
 ### Calliope Erweiterung für das i2c Modul:
 
 * [Grove - OLED Display 0.96 inch](https://wiki.seeedstudio.com/Grove-OLED_Display_0.96inch/)

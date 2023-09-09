@@ -313,7 +313,6 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     }
 
 
-
     // ========== group="kopiert 1024 Byte vom EEPROM auf ein Display (Text, Bild)"
 
     //% group="kopiert 1024 Byte vom EEPROM auf ein Display (Text, Bild)"
@@ -449,9 +448,19 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
     //% group="Text" advanced=true
-    //% blockId=oledssd1315_text block="%s"
+    //% blockId=oledssd1315_text block="%s" weight=9
     export function oledssd1315_text(s: string): string { return s }
-
+/* 
+    //% group="Text" advanced=true
+    //% block="Sonderzeichen Code von Char %pChar" weight=4
+    function changeCharCode(pChar: string) {
+        if (pChar.length == 0) return 0
+        switch (pChar.charAt(0)) {
+            case "€": return 0x80
+        }
+        return pChar.charCodeAt(0) & 0xFF
+    }
+ */
 
     // ========== group="Logik"
 

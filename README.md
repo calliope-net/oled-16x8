@@ -1,6 +1,8 @@
 
 > Diese Seite bei [https://calliope-net.github.io/oled-16x8/](https://calliope-net.github.io/oled-16x8/) öffnen.
 
+> Zum Programmieren des EEPROM die Erweiterung [**calliope-net/oled-eeprom**](https://calliope-net.github.io/oled-eeprom/) verwenden.
+
 ### Calliope Erweiterung für i2c OLED Displays, Zeichensatz im EEPROM:
 
 > OLED neu gedacht - 2 Displays gleichzeitig - EEPROM - 1 Stecker - i2c-Bus

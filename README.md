@@ -65,7 +65,7 @@ Mit optionalen Parametern kann eingestellt werden:
 * **Zeichensatz** Anfangsadresse im EEPROM. Von hier werden 2048 Bytes für 256 Zeichen-Codes verwendet.
   Jedes Display kann einen anderen Zeichensatz benutzen. Im Beispiel ist für das Display im Hochformat 8x16
   ein Zeichensatz eingestellt, der auch 1/4 gedrehte Zeichen enthält. Die Anfangsadresse im EEPROM wird
-  der i2c Adresse zugeordnet und gespeichert (bis 'beim Start' erneut aufgerufen wird).
+  der i2c Adresse zugeordnet und gespeichert (bis *beim Start* erneut aufgerufen wird).
 * **i2c** Die i2c Adresse des EEPROM muss normalerweise nicht geändert werden.
   
 #### Display löschen, Cursor, Text

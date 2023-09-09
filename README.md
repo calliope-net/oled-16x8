@@ -41,7 +41,13 @@ Dieses Repository kann als **Erweiterung** in MakeCode hinzugefügt werden.
 ### Beschreibung der Erweiterung für 'Grove - OLED Display'
 
 *
+![](beimstart.png)
 
+![](a.png)
+
+![](b.png)
+
+![](ab.png)
 
 ### Erweiterungen
 

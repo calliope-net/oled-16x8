@@ -30,7 +30,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // Variablen im namespace oledssd1315
     let oledssd1315_0x3C_EEPROM_Startadresse = eEEPROM_Startadresse.F800 // jedes Display kann eigenen Zeichesatz im EEPROM haben
-    let oledssd1315_0x3D_EEPROM_Startadresse = eEEPROM_Startadresse.F000 // F000 sind Zeichen für Hochformat
+    let oledssd1315_0x3D_EEPROM_Startadresse = eEEPROM_Startadresse.F800 // F000 sind Zeichen für Hochformat
     let oledssd1315_ADDR_EEPROM = eADDR_EEPROM.EEPROM // i2c Adresse vom EEPROM wird bei init gespeichert, es soll nur einen geben
 
     // die zum Modul gehörende Startadresse der Zeichen im EEPROM

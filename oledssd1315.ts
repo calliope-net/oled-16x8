@@ -31,9 +31,9 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
     // Variablen im namespace oledssd1315
-    let oledssd1315_ADDR_EEPROM = eADDR_EEPROM.EEPROM_x50 // i2c Adresse vom EEPROM wird bei init gespeichert, es soll nur einen geben
-    let oledssd1315_0x3C_EEPROM_Startadresse = eEEPROM_Startadresse.F800 // jedes Display kann eigenen Zeichesatz im EEPROM haben
-    let oledssd1315_0x3D_EEPROM_Startadresse = eEEPROM_Startadresse.F800 // F000 sind Zeichen für Hochformat
+    let n_ADDR_EEPROM = eADDR_EEPROM.EEPROM_x50 // i2c Adresse vom EEPROM wird bei init gespeichert, es soll nur einen geben
+    let n_0x3C_EEPROM_Startadresse = eEEPROM_Startadresse.F800 // jedes Display kann eigenen Zeichesatz im EEPROM haben
+    let n_0x3D_EEPROM_Startadresse = eEEPROM_Startadresse.F800 // F000 sind Zeichen für Hochformat
 
     // die zum Modul gehörende Startadresse der Zeichen im EEPROM
     //function stAdr(pADDR: eADDR) { return (pADDR == eADDR.OLED_16x8_x3D ? oledssd1315_0x3D_EEPROM_Startadresse : oledssd1315_0x3C_EEPROM_Startadresse) }
@@ -62,7 +62,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
 
     //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
-    //% block="i2c %pADDR beim Start || invert %pInvert drehen %pFlip i2c-Check %ck Zeichensatz %pEEPROM_Startadresse i2c %pADDR_EEPROM" weight=8
+    //% block="i2c %pADDR beim Start || invert %pInvert drehen %pFlip i2c-Check %ck EEPROM: Zeichensatz %pEEPROM_Startadresse i2c %pADDR_EEPROM" weight=8
     //% pADDR.shadow="oledssd1315_eADDR"
     //% pInvert.shadow="toggleOnOff" pInvert.defl=false
     //% pFlip.shadow="toggleOnOff" pFlip.defl=false
@@ -71,23 +71,28 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     //% pADDR_EEPROM.shadow="oledssd1315_eADDR_EEPROM"
     //% inlineInputMode=inline
     export function init(pADDR: number, pInvert?: boolean, pFlip?: boolean, ck?: boolean,
-        pEEPROM_Startadresse?: number, pADDR_EEPROM?: number) {
+        pEEPROM_Startadresse?: number, pADDR_EEPROM?: number): void {
+
+        //if (!between(pADDR, eADDR.OLED_16x8_x3C, eADDR.OLED_16x8_x3D)) {
+        //    basic.showString("nur x3C oder x3D ist gültig")
+        //} else {
+        // nur diese beiden i2c-Adressen sind gültig
 
         n_i2cCheck = (ck ? true : false) // optionaler boolean Parameter kann undefined sein
         n_i2cError_x50 = 0 // Reset Fehlercode
 
         // i2c Adresse vom EEPROM nur speichern, wenn Parameter angegeben (nicht NaN)
-        if (between(pADDR_EEPROM, 0x50, 0x57)) { oledssd1315_ADDR_EEPROM = pADDR_EEPROM }
+        if (between(pADDR_EEPROM, 0x50, 0x57)) { n_ADDR_EEPROM = pADDR_EEPROM }
 
         // Startadresse Zeichensatz im EEPROM je Display getrennt speichern, wenn angegeben
         if (between(pEEPROM_Startadresse, 0x0000, 0xFFFF)) {
             if (pADDR == eADDR.OLED_16x8_x3C) {
                 n_i2cError_x3C = 0
-                oledssd1315_0x3C_EEPROM_Startadresse = pEEPROM_Startadresse
+                n_0x3C_EEPROM_Startadresse = pEEPROM_Startadresse
             }
             else if (pADDR == eADDR.OLED_16x8_x3D) {
                 n_i2cError_x3D = 0
-                oledssd1315_0x3D_EEPROM_Startadresse = pEEPROM_Startadresse
+                n_0x3D_EEPROM_Startadresse = pEEPROM_Startadresse
             }
         }
 
@@ -150,9 +155,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
         i2cWriteBuffer(pADDR, bu) // nur 1 Buffer wird gesendet
 
-        //if (oledssd1315_i2cWriteBufferError != 0) {
-        //    basic.showNumber(pADDR) // wenn Modul nicht angesteckt: i2c Adresse anzeigen und Abbruch
-        //} else {
+
         bu = Buffer.create(135)
         offset = 0            //offset = setCursorBuffer6(bu, 0, 0, 0)
 
@@ -367,9 +370,9 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
                 buDisplay.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
                 //offsetDisplay = 7 // offset 7-135 sind 128 Byte für die Pixel in einer Zeile
 
-                i2cWriteBuffer(oledssd1315_ADDR_EEPROM, buEEPROM)
+                i2cWriteBuffer(n_ADDR_EEPROM, buEEPROM)
 
-                buDisplay.write(7, i2cReadBuffer_EEPROM(oledssd1315_ADDR_EEPROM, 128))
+                buDisplay.write(7, i2cReadBuffer_EEPROM(n_ADDR_EEPROM, 128))
                 /* 
                 for (let charCode = 0; charCode <= 15; charCode++) {
                     // schreibt 16 Zeichen je 8 Pixel in den Buffer(7-135)
@@ -423,16 +426,16 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     function getPixel8ByteEEPROM(pADDR: eADDR, pCharCode: number, pDrehen: eDrehen) {
 
-        let startAdresse = (pADDR == eADDR.OLED_16x8_x3D ? oledssd1315_0x3D_EEPROM_Startadresse : oledssd1315_0x3C_EEPROM_Startadresse)
+        let startAdresse = (pADDR == eADDR.OLED_16x8_x3D ? n_0x3D_EEPROM_Startadresse : n_0x3C_EEPROM_Startadresse)
 
         let bu = Buffer.create(2)
         bu.setNumber(NumberFormat.UInt16BE, 0, startAdresse + pCharCode * 8)
-        i2cWriteBuffer(oledssd1315_ADDR_EEPROM, bu, true)
+        i2cWriteBuffer(n_ADDR_EEPROM, bu, true)
 
         //if (pStartAdresse >= eStartAdresse.F800) {
         //return pins.i2cReadBuffer(eADDR_EEPROM.EEPROM, 8)
         //} else {
-        return drehen(i2cReadBuffer_EEPROM(oledssd1315_ADDR_EEPROM, 8), pDrehen)
+        return drehen(i2cReadBuffer_EEPROM(n_ADDR_EEPROM, 8), pDrehen)
         //}
     }
 
@@ -538,7 +541,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
                     n_i2cError_x3D = pins.i2cWriteBuffer(pADDR, buf, repeat)
                 //else { } // n_i2cCheck=true und n_i2cError != 0: weitere i2c Aufrufe blockieren
                 break
-            case oledssd1315_ADDR_EEPROM: // eADDR_EEPROM.EEPROM_x50:
+            case n_ADDR_EEPROM: // eADDR_EEPROM.EEPROM_x50:
                 if (n_i2cError_x50 == 0) { // vorher kein Fehler
                     n_i2cError_x50 = pins.i2cWriteBuffer(pADDR, buf, repeat)
                     if (n_i2cCheck && n_i2cError_x50 != 0)  // vorher kein Fehler, wenn (n_i2cCheck=true): beim 1. Fehler anzeigen

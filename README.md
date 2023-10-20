@@ -74,7 +74,7 @@ Mit optionalen Parametern kann eingestellt werden:
 Ohne optionale Parameter wird das gesamte Display gelöscht. Tatsächlich werden 128 Leerzeichen geschrieben.
 Es können einzelne Zeilen gelöscht und ein anderes Zeichen angegeben werden, mit dem die Zeilen gefüllt werden.
 
-Der Cursor kann an eine Stelle gesetzt werden und Text wird ab Cursorpasition geschrieben.
+Der Cursor kann an eine Stelle gesetzt werden und Text wird ab Cursorposition geschrieben.
 Der Parameter Text ist vom Typ *any* und nimmt auch Blöcke vom Typ *number* oder *boolean*.
 
 #### Text in einen *festen Bereich* schreiben

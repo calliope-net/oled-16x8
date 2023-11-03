@@ -8,7 +8,8 @@
         "main.blocks",
         "main.ts",
         "README.md",
-        "oledssd1315.ts"
+        "oledssd1315.ts",
+        "oledclass.ts"
     ],
     "testFiles": [
         "test.ts"

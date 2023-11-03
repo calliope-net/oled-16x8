@@ -552,7 +552,6 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
             return pins.i2cReadBuffer(pADDR, size, repeat)
         else
             return Buffer.create(size)
-
     }
 
 } // oledssd1315.ts

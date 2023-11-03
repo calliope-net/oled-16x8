@@ -1,4 +1,5 @@
 
+//% color=#0000BF icon="\uf108" block="OLED 16x8" weight=20
 namespace oledssd1315
 /* 230908 231011 https://github.com/calliope-net/oled-16x8
 
@@ -36,32 +37,6 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
             (pEEPROM_i2cADDR == undefined ? eADDR_EEPROM.EEPROM_x50 : pEEPROM_i2cADDR))
         // optionaler Parameter kann undefined sein
     }
-
-    let x20: string[], x30: string[], x40: string[], x50: string[], x60: string[], x70: string[]
-
-    //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
-    //% block="Arrays laden 2x %p20 3x %p30 4x %p40 5x %p50 6x %p60 7x %p70"
-    //% inlineInputMode=inline
-    export function startArrays(p20: string[], p30: string[], p40: string[], p50: string[], p60: string[], p70: string[]) {
-        x20 = p20; x30 = p30; x40 = p40; x50 = p50; x60 = p60; x70 = p70
-    }
-
-    function getPixel8ByteArray(pCharCode: number) {
-        let charCodeArray: string[]
-        switch (pCharCode & 0xF0) {
-            //case 0x00: { charCodeArray = extendedCharacters; break; }
-            case 0x20: { charCodeArray = x20; break; } // 16 string-Elemente je 8 Byte = 128
-            case 0x30: { charCodeArray = x30; break; }
-            case 0x40: { charCodeArray = x40; break; }
-            case 0x50: { charCodeArray = x50; break; }
-            case 0x60: { charCodeArray = x60; break; }
-            case 0x70: { charCodeArray = x70; break; }
-        }
-        return Buffer.fromUTF8(charCodeArray.get(pCharCode & 0x0F))
-
-
-    }
-
 
 
 
@@ -398,15 +373,16 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
             //                    0x40               // CONTROL+Display Data
         }
 
-
         private writeTextBuffer(bu: Buffer, offset: number, pText: string) {
             // schreibt in den Buffer ab offset 1 Byte 0x40 + 8 Byte pro char im Text für die 8x8 Pixel
             // Buffer muss vorher die richtige Länge haben
             let font: string
             bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
             for (let j = 0; j < pText.length; j++) {
-                bu.write(offset, getPixel8ByteArray(pText.charCodeAt(j)))
-                //bu.write(offset, this.getPixel8ByteEEPROM(pText.charCodeAt(j), eDrehen.nicht))
+                if (this.i2cError_EEPROM != 0)
+                    bu.write(offset, this.getPixel8ByteEEPROM(pText.charCodeAt(j), eDrehen.nicht))
+                else
+                    bu.write(offset, getPixel8ByteArray(pText.charCodeAt(j), eDrehen.nicht))
                 offset += 8
             }
             this.i2cWriteBuffer_OLED(bu)
@@ -419,47 +395,10 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
             bu.setNumber(NumberFormat.UInt16BE, 0, this.startadresse_EEPROM + pCharCode * 8)
             this.i2cWriteBuffer_EEPROM(bu, true)
 
-            return this.drehen(this.i2cReadBuffer_EEPROM(8), pDrehen)
+            return drehen(this.i2cReadBuffer_EEPROM(8), pDrehen)
         }
-
-        private drehen(b0: Buffer, pDrehen: eDrehen) { // Buffer mit 8 Byte
-            let b1 = Buffer.create(8)
-            b1.fill(0b00000000)
-
-            switch (pDrehen) {
-                case eDrehen.nicht: {
-                    return b0
-                }
-                case eDrehen.viertel: {
-                    for (let i = 0; i <= 7; i++) { // 8x8 Bit 1/4 nach rechts drehen
-                        if ((b0.getUint8(i) & 2 ** 0) != 0) { b1.setUint8(7, b1.getUint8(7) | 2 ** i) }
-                        if ((b0.getUint8(i) & 2 ** 1) != 0) { b1.setUint8(6, b1.getUint8(6) | 2 ** i) }
-                        if ((b0.getUint8(i) & 2 ** 2) != 0) { b1.setUint8(5, b1.getUint8(5) | 2 ** i) }
-                        if ((b0.getUint8(i) & 2 ** 3) != 0) { b1.setUint8(4, b1.getUint8(4) | 2 ** i) }
-                        if ((b0.getUint8(i) & 2 ** 4) != 0) { b1.setUint8(3, b1.getUint8(3) | 2 ** i) }
-                        if ((b0.getUint8(i) & 2 ** 5) != 0) { b1.setUint8(2, b1.getUint8(2) | 2 ** i) }
-                        if ((b0.getUint8(i) & 2 ** 6) != 0) { b1.setUint8(1, b1.getUint8(1) | 2 ** i) }
-                        if ((b0.getUint8(i) & 2 ** 7) != 0) { b1.setUint8(0, b1.getUint8(0) | 2 ** i) }
-                    }
-                    return b1
-                }
-                case eDrehen.halb: {
-                    for (let b0offset = 0; b0offset <= 7; b0offset++) { // 8x8 Bit 1/2 nach rechts drehen
-                        if ((b0.getUint8(b0offset) & 2 ** 0) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 0) }
-                        if ((b0.getUint8(b0offset) & 2 ** 1) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 1) }
-                        if ((b0.getUint8(b0offset) & 2 ** 2) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 2) }
-                        if ((b0.getUint8(b0offset) & 2 ** 3) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 3) }
-                        if ((b0.getUint8(b0offset) & 2 ** 4) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 4) }
-                        if ((b0.getUint8(b0offset) & 2 ** 5) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 5) }
-                        if ((b0.getUint8(b0offset) & 2 ** 6) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 6) }
-                        if ((b0.getUint8(b0offset) & 2 ** 7) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 7) }
-                    }
-                    return b1
-                }
-                default: return b0
-            }
-        }
-
+        
+        
 
         // ========== private i2cWriteBuffer i2cReadBuffer
 
@@ -493,6 +432,49 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // namespace oledssd1315
 
+
+    export enum eDrehen { nicht, viertel, halb }
+
+    export function drehen(b0: Buffer, pDrehen: eDrehen) { // Buffer mit 8 Byte
+        let b1 = Buffer.create(8)
+        b1.fill(0b00000000)
+
+        switch (pDrehen) {
+            case eDrehen.nicht: {
+                return b0
+            }
+            case eDrehen.viertel: {
+                for (let i = 0; i <= 7; i++) { // 8x8 Bit 1/4 nach rechts drehen
+                    if ((b0.getUint8(i) & 2 ** 0) != 0) { b1.setUint8(7, b1.getUint8(7) | 2 ** i) }
+                    if ((b0.getUint8(i) & 2 ** 1) != 0) { b1.setUint8(6, b1.getUint8(6) | 2 ** i) }
+                    if ((b0.getUint8(i) & 2 ** 2) != 0) { b1.setUint8(5, b1.getUint8(5) | 2 ** i) }
+                    if ((b0.getUint8(i) & 2 ** 3) != 0) { b1.setUint8(4, b1.getUint8(4) | 2 ** i) }
+                    if ((b0.getUint8(i) & 2 ** 4) != 0) { b1.setUint8(3, b1.getUint8(3) | 2 ** i) }
+                    if ((b0.getUint8(i) & 2 ** 5) != 0) { b1.setUint8(2, b1.getUint8(2) | 2 ** i) }
+                    if ((b0.getUint8(i) & 2 ** 6) != 0) { b1.setUint8(1, b1.getUint8(1) | 2 ** i) }
+                    if ((b0.getUint8(i) & 2 ** 7) != 0) { b1.setUint8(0, b1.getUint8(0) | 2 ** i) }
+                }
+                return b1
+            }
+            case eDrehen.halb: {
+                for (let b0offset = 0; b0offset <= 7; b0offset++) { // 8x8 Bit 1/2 nach rechts drehen
+                    if ((b0.getUint8(b0offset) & 2 ** 0) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 0) }
+                    if ((b0.getUint8(b0offset) & 2 ** 1) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 1) }
+                    if ((b0.getUint8(b0offset) & 2 ** 2) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 2) }
+                    if ((b0.getUint8(b0offset) & 2 ** 3) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 3) }
+                    if ((b0.getUint8(b0offset) & 2 ** 4) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 4) }
+                    if ((b0.getUint8(b0offset) & 2 ** 5) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 5) }
+                    if ((b0.getUint8(b0offset) & 2 ** 6) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 6) }
+                    if ((b0.getUint8(b0offset) & 2 ** 7) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 7) }
+                }
+                return b1
+            }
+            default: return b0
+        }
+    }
+
+
+
     export enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
         // CONTROL ist immer das 1. Byte im Buffer
         x00_xCom = 0x00, // im selben Buffer folgen nur Command Bytes ohne CONTROL dazwischen
@@ -519,8 +501,6 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         //% block="rechtsbündig"
         rechts
     }
-
-    export enum eDrehen { nicht, viertel, halb }
 
     export enum eDisplayCommand {
         //% block="AF AE Set Display ON/OFF"

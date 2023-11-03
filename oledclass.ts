@@ -210,6 +210,66 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         }
 
 
+        private writeTextBuffer1(bu: Buffer, offset: number, pText: string) {
+            // schreibt in den Buffer ab offset 1 Byte 0x40 + 8 Byte pro char im Text für die 8x8 Pixel
+            // Buffer muss vorher die richtige Länge haben
+            let font: string
+            bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
+            for (let j = 0; j < pText.length; j++) {
+                bu.write(offset, this.getPixel8ByteEEPROM(pText.charCodeAt(j), eDrehen.nicht))
+                offset += 8
+            }
+            this.i2cWriteBuffer_OLED(bu)
+            control.waitMicros(50)
+        }
+
+        private getPixel8ByteEEPROM(pCharCode: number, pDrehen: eDrehen) {
+
+            let bu = Buffer.create(2)
+            bu.setNumber(NumberFormat.UInt16BE, 0, this.startadresse_EEPROM + pCharCode * 8)
+            this.i2cWriteBuffer_EEPROM(bu, true)
+
+            return this.drehen(this.i2cReadBuffer_EEPROM(8), pDrehen)
+        }
+
+        private drehen(b0: Buffer, pDrehen: eDrehen) { // Buffer mit 8 Byte
+            let b1 = Buffer.create(8)
+            b1.fill(0b00000000)
+
+            switch (pDrehen) {
+                case eDrehen.nicht: {
+                    return b0
+                }
+                case eDrehen.viertel: {
+                    for (let i = 0; i <= 7; i++) { // 8x8 Bit 1/4 nach rechts drehen
+                        if ((b0.getUint8(i) & 2 ** 0) != 0) { b1.setUint8(7, b1.getUint8(7) | 2 ** i) }
+                        if ((b0.getUint8(i) & 2 ** 1) != 0) { b1.setUint8(6, b1.getUint8(6) | 2 ** i) }
+                        if ((b0.getUint8(i) & 2 ** 2) != 0) { b1.setUint8(5, b1.getUint8(5) | 2 ** i) }
+                        if ((b0.getUint8(i) & 2 ** 3) != 0) { b1.setUint8(4, b1.getUint8(4) | 2 ** i) }
+                        if ((b0.getUint8(i) & 2 ** 4) != 0) { b1.setUint8(3, b1.getUint8(3) | 2 ** i) }
+                        if ((b0.getUint8(i) & 2 ** 5) != 0) { b1.setUint8(2, b1.getUint8(2) | 2 ** i) }
+                        if ((b0.getUint8(i) & 2 ** 6) != 0) { b1.setUint8(1, b1.getUint8(1) | 2 ** i) }
+                        if ((b0.getUint8(i) & 2 ** 7) != 0) { b1.setUint8(0, b1.getUint8(0) | 2 ** i) }
+                    }
+                    return b1
+                }
+                case eDrehen.halb: {
+                    for (let b0offset = 0; b0offset <= 7; b0offset++) { // 8x8 Bit 1/2 nach rechts drehen
+                        if ((b0.getUint8(b0offset) & 2 ** 0) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 0) }
+                        if ((b0.getUint8(b0offset) & 2 ** 1) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 1) }
+                        if ((b0.getUint8(b0offset) & 2 ** 2) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 2) }
+                        if ((b0.getUint8(b0offset) & 2 ** 3) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 3) }
+                        if ((b0.getUint8(b0offset) & 2 ** 4) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 4) }
+                        if ((b0.getUint8(b0offset) & 2 ** 5) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 5) }
+                        if ((b0.getUint8(b0offset) & 2 ** 6) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 6) }
+                        if ((b0.getUint8(b0offset) & 2 ** 7) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 7) }
+                    }
+                    return b1
+                }
+                default: return b0
+            }
+        }
+
 
         // ========== private i2cWriteBuffer i2cReadBuffer
 
@@ -243,7 +303,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // namespace oledssd1315
 
-    export  enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
+    export enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
         // CONTROL ist immer das 1. Byte im Buffer
         x00_xCom = 0x00, // im selben Buffer folgen nur Command Bytes ohne CONTROL dazwischen
         x80_1Com = 0x80, // im selben Buffer nach jedem Command ein neues CONTROL [0x00 | 0x80 | 0x40]
@@ -269,7 +329,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         //% block="rechtsbündig"
         rechts
     }
-
+    enum eDrehen { nicht, viertel, halb }
 
 
     // ========== blockId=oledssd1315_

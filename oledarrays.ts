@@ -9,7 +9,7 @@ namespace oledssd1315 {
         x20 = p20; x30 = p30; x40 = p40; x50 = p50; x60 = p60; x70 = p70
     }
 
-    export function getPixel8ByteArray(pCharCode: number, pDrehen: eDrehen) {
+    export function getPixel8ByteArray(pCharCode: number) {
         let charCodeArray: string[]
         switch (pCharCode & 0xF0) {
             //case 0x00: { charCodeArray = extendedCharacters; break; }
@@ -21,7 +21,7 @@ namespace oledssd1315 {
             case 0x70: { charCodeArray = x70; break; }
         }
         //return Buffer.fromUTF8(charCodeArray.get(pCharCode & 0x0F))
-        return drehen(Buffer.fromUTF8(charCodeArray.get(pCharCode & 0x0F)), pDrehen)
+        return Buffer.fromUTF8(charCodeArray.get(pCharCode & 0x0F))
     }
 
 } // oledarrays.ts

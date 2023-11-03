@@ -1,5 +1,5 @@
 
-//% color=#0000BF icon="\uf108" block="OLED 16x8" weight=20
+
 namespace oledssd1315
 /* 230908 231011 https://github.com/calliope-net/oled-16x8
 
@@ -39,27 +39,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // die zum Modul gehörende Startadresse der Zeichen im EEPROM
     //function stAdr(pADDR: eADDR) { return (pADDR == eADDR.OLED_16x8_x3D ? oledssd1315_0x3D_EEPROM_Startadresse : oledssd1315_0x3C_EEPROM_Startadresse) }
-    /* 
-        enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
-            // CONTROL ist immer das 1. Byte im Buffer
-            x00_xCom = 0x00, // im selben Buffer folgen nur Command Bytes ohne CONTROL dazwischen
-            x80_1Com = 0x80, // im selben Buffer nach jedem Command ein neues CONTROL [0x00 | 0x80 | 0x40]
-            x40_Data = 0x40  // im selben Buffer folgen nur Display-Data Bytes ohne CONTROL dazwischen
-        }
-    
-        export enum eCommand {
-            A0_SEGMENT_REMAP = 0xA0, // column address 0 is mapped to SEG0 (RESET) // using 0xA0 will flip screen
-            A1_SEGMENT_REMAP = 0xA1, // column address 127 is mapped to SEG0
-            A4_ENTIRE_DISPLAY_ON = 0xA4,
-            A5_RAM_CONTENT_DISPLAY = 0xA5,
-            A6_NORMAL_DISPLAY = 0xA6, // invert Hintergrund schwarz
-            A7_INVERT_DISPLAY = 0xA7, // invert Hintergrund leuchtet
-            AE_DISPLAY_OFF = 0xAE,
-            AF_DISPLAY_ON = 0xAF,
-            C0_COM_SCAN_INC = 0xC0, // COM Output Scan Direction
-            C8_COM_SCAN_DEC = 0xC8, // remapped mode Scan from COM[N-1] to COM0
-        }
-     */
+
 
     // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
 
@@ -236,10 +216,6 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         let len: number = end - col + 1
         if (between(row, 0, 7) && between(col, 0, 15) && between(len, 0, 16)) {
 
-            //if (text.length >= len) text = text.substr(0, len)
-            //else if (text.length < len && pAlign == eAlign.rechts) { text = "                ".substr(0, len - text.length) + text }
-            //else /* if (pText.length < len && pAlign == eAlign.links) */ { text = text + "                ".substr(0, len - text.length) }
-
             if (text.length > len)
                 text = text.substr(0, len)
             else if (text.length < len && pAlign == eAlign.rechts)
@@ -267,10 +243,6 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         let text: string = convertToText(pText)
         let len: number = end - col + 1
         if (between(row, 0, 15) && between(col, 0, 7) && between(len, 0, 8)) {
-
-            //if (text.length >= len) text = text.substr(0, len)
-            //else if (text.length < len && pAlign == eAlign.rechts) { text = "        ".substr(0, len - text.length) + text }
-            //else /* if (text.length < len && pAlign == eAlign.links) */ { text = text + "        ".substr(0, len - text.length) }
 
             if (text.length > len)
                 text = text.substr(0, len)
@@ -375,13 +347,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
                 i2cWriteBuffer(n_ADDR_EEPROM, buEEPROM)
 
                 buDisplay.write(7, i2cReadBuffer_EEPROM(n_ADDR_EEPROM, 128))
-                /* 
-                for (let charCode = 0; charCode <= 15; charCode++) {
-                    // schreibt 16 Zeichen je 8 Pixel in den Buffer(7-135)
-                    buDisplay.write(offsetDisplay, getPixel8ByteEEPROM(pADDR, page * 16 + charCode, eDrehen.nicht))
-                    offsetDisplay += 8
-                } 
-                */
+
                 i2cWriteBuffer(pADDR, buDisplay)
             }
         }
@@ -392,19 +358,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     // ========== advanced=true
 
     // ========== group="Display Command"
-    /* 
-        export enum eDisplayCommand {
-            //% block="AF AE Set Display ON/OFF"
-            ON,
-            //% block="A7 A6 Set Normal/Inverse Display"
-            INVERS,
-            //% block="A0 A1 Set Segment Remap"
-            FLIP,
-            //% block="C0 C8 Set COM Output Scan Direction"
-            REMAP,
-            //% block="A4 A5 Entire Display"
-            ENTIRE_ON
-        } */
+
     //% deprecated=true
     //% group="Display Command"
     //% block="i2c %pADDR Display Command %pDisplayCommand %pON" advanced=true

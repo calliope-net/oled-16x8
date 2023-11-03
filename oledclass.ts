@@ -1,7 +1,7 @@
 
 //% color=#0000BF icon="\uf108" block="OLED 16x8" weight=20
 namespace oledssd1315
-/* 230908 231011 https://github.com/calliope-net/oled-16x8
+/* 230908 231103 https://github.com/calliope-net/oled-16x8
 
 Grove - OLED Yellow&Blue Display 0.96(SSD1315)
 https://wiki.seeedstudio.com/Grove-OLED-Yellow&Blue-Display-0.96-SSD1315_V1.0/
@@ -14,6 +14,7 @@ initdisplaycodes from https://gist.githubusercontent.com/pulsar256/564fda3b9e8fc
 https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf)
 
 OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
+Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im November 2023
 */ {
     export enum eADDR { OLED_16x8_x3C = 0x3C, OLED_16x8_x3D = 0x3D }
     export enum eADDR_EEPROM { EEPROM_x50 = 0x50 }
@@ -62,6 +63,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
             this.i2cError_OLED = 0 // Reset Fehlercode
             this.i2cError_EEPROM = 0 // Reset Fehlercode
             this.init(pInvert, pFlip)
+            this.getPixel8Byte(0x20, eDrehen.nicht)  // testet, ob EEPROM angeschlossen ist
         }
 
 
@@ -273,7 +275,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
                 for (let j = 0; j < text.length; j++) {
                     bu.setUint8(1, 0xB0 | (7 - (col + j)) & 0x07)      // page number 7-0 B7-B0
-                    bu.write(8, this.getPixel8ByteEEPROM(text.charCodeAt(j), eDrehen.nicht))
+                    bu.write(8, this.getPixel8Byte(text.charCodeAt(j), eDrehen.nicht))
 
                     this.i2cWriteBuffer_OLED(bu)
                 }
@@ -379,26 +381,27 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
             let font: string
             bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
             for (let j = 0; j < pText.length; j++) {
-                if (this.i2cError_EEPROM != 0)
-                    bu.write(offset, this.getPixel8ByteEEPROM(pText.charCodeAt(j), eDrehen.nicht))
-                else
-                    bu.write(offset, getPixel8ByteArray(pText.charCodeAt(j), eDrehen.nicht))
+                bu.write(offset, this.getPixel8Byte(pText.charCodeAt(j), eDrehen.nicht))
                 offset += 8
             }
             this.i2cWriteBuffer_OLED(bu)
             control.waitMicros(50)
         }
 
-        private getPixel8ByteEEPROM(pCharCode: number, pDrehen: eDrehen) {
+        private getPixel8Byte(pCharCode: number, pDrehen: eDrehen) {
+            if (this.i2cError_EEPROM == 0) {
+                let bu = Buffer.create(2)
+                bu.setNumber(NumberFormat.UInt16BE, 0, this.startadresse_EEPROM + pCharCode * 8)
+                this.i2cWriteBuffer_EEPROM(bu, true)
 
-            let bu = Buffer.create(2)
-            bu.setNumber(NumberFormat.UInt16BE, 0, this.startadresse_EEPROM + pCharCode * 8)
-            this.i2cWriteBuffer_EEPROM(bu, true)
-
-            return drehen(this.i2cReadBuffer_EEPROM(8), pDrehen)
+                return drehen(this.i2cReadBuffer_EEPROM(8), pDrehen)
+            } else {
+                // wenn kein EEPROM angeschlossen, Zeichencode aus Array laden
+                return drehen(getPixel8ByteArray(pCharCode), pDrehen)
+            }
         }
-        
-        
+
+
 
         // ========== private i2cWriteBuffer i2cReadBuffer
 

@@ -28,7 +28,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     //export enum eStartAdresse { F800 = 0xF800, FC00 = 0xFC00, F000 = 0xF000, F400 = 0xF400 }
     //export enum eEEPROM_Startadresse { F800 = 0xF800, FC00 = 0xFC00, F000 = 0xF000, F400 = 0xF400 }
-    //% blockId=oledssd1315_eEEPROM_Startadresse block="%p" blockHidden=true
+    // blockId=oledssd1315_eEEPROM_Startadresse block="%p" blockHidden=true
     //export function oledssd1315_eEEPROM_Startadresse(p: eEEPROM_Startadresse): number { return p }
 
 
@@ -496,24 +496,24 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     }
 
     // ========== group="i2c Adressen"
-/* 
-    //% blockId=oledssd1315_eADDR
-    //% group="i2c Adressen" advanced=true
-    //% block="%pADDR" weight=5
-    export function oledssd1315_eADDR(pADDR: eADDR): number { return pADDR }
- */
+
+    // blockId=oledssd1315_eADDR
+    // group="i2c Adressen" advanced=true
+    // block="%pADDR" weight=5
+    //export function oledssd1315_eADDR(pADDR: eADDR): number { return pADDR }
+
     //% group="i2c Adressen" advanced=true
     //% block="i2c Fehlercode %pADDR" weight=4
     //% pADDR.shadow="oledssd1315_eADDR"
     export function i2cError_OLED(pADDR: number) {
         return (pADDR == eADDR.OLED_16x8_x3D ? n_i2cError_x3D : n_i2cError_x3C)
     }
-/* 
+
     //% blockId=oledssd1315_eADDR_EEPROM block="%p" 
     //% group="i2c Adressen" advanced=true
     //% block="%pADDR" weight=3
-    export function oledssd1315_eADDR_EEPROM(pADDR_EEPROM: eADDR_EEPROM): number { return pADDR_EEPROM }
- */
+    //export function oledssd1315_eADDR_EEPROM(pADDR_EEPROM: eADDR_EEPROM): number { return pADDR_EEPROM }
+
     //% group="i2c Adressen" advanced=true
     //% block="i2c Fehlercode EEPROM" weight=2
     export function i2cError_EEPROM() { return n_i2cError_x50 }

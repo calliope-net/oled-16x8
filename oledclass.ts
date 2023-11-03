@@ -21,9 +21,9 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
     //% block="i2c %pADDR || invert %pInvert drehen %pFlip i2c-Check %ck EEPROM: Zeichensatz %pEEPROM_Startadresse i2c %pEEPROM_i2cADDR"
     //% pADDR.shadow="oledssd1315_eADDR"
-    //% pInvert.shadow="toggleOnOff" pInvert.defl=false
-    //% pFlip.shadow="toggleOnOff" pFlip.defl=false
-    //% ck.shadow="toggleOnOff" ck.defl=true
+    //% pInvert.shadow="toggleOnOff"
+    //% pFlip.shadow="toggleOnOff"
+    //% ck.shadow="toggleOnOff" ck.defl=1
     //% pEEPROM_Startadresse.shadow="oledssd1315_eEEPROM_Startadresse"
     //% pEEPROM_i2cADDR.shadow="oledssd1315_eADDR_EEPROM"
     //% inlineInputMode=inline
@@ -32,7 +32,9 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         pEEPROM_Startadresse?: number, pEEPROM_i2cADDR?: number) {
 
         return new oledclass(pADDR, (pInvert ? true : false), (pFlip ? true : false), (ck ? true : false),
-            pEEPROM_Startadresse, pEEPROM_i2cADDR) // optionaler boolean Parameter kann undefined sein
+            (pEEPROM_Startadresse == undefined ? eEEPROM_Startadresse.F800 : pEEPROM_Startadresse),
+            (pEEPROM_i2cADDR == undefined ? eADDR_EEPROM.EEPROM_x50 : pEEPROM_i2cADDR))
+        // optionaler Parameter kann undefined sein
     }
 
 

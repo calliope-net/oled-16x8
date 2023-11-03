@@ -39,7 +39,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // die zum Modul gehörende Startadresse der Zeichen im EEPROM
     //function stAdr(pADDR: eADDR) { return (pADDR == eADDR.OLED_16x8_x3D ? oledssd1315_0x3D_EEPROM_Startadresse : oledssd1315_0x3C_EEPROM_Startadresse) }
-
+/* 
     enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
         // CONTROL ist immer das 1. Byte im Buffer
         x00_xCom = 0x00, // im selben Buffer folgen nur Command Bytes ohne CONTROL dazwischen
@@ -59,7 +59,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         C0_COM_SCAN_INC = 0xC0, // COM Output Scan Direction
         C8_COM_SCAN_DEC = 0xC8, // remapped mode Scan from COM[N-1] to COM0
     }
-
+ */
 
     // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
 
@@ -222,13 +222,13 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
     // ========== group="OLED 16x8 Display Text anzeigen"
-
+/* 
     export enum eAlign {
         //% block="linksbündig"
         links,
         //% block="rechtsbündig"
         rechts
-    }
+    } */
 
     //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
     //% block="i2c %pADDR Text 16x8 Zeile %row von %col bis %end %pText || %pAlign" weight=8

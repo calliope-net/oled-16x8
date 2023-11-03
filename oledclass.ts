@@ -29,7 +29,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     //% inlineInputMode=inline
     //% blockSetVariable=OLED16x8
     export function beimStart(pADDR: number, pInvert?: boolean, pFlip?: boolean, ck?: boolean,
-        pEEPROM_Startadresse?: number, pEEPROM_i2cADDR?: number) {
+        pEEPROM_Startadresse?: number, pEEPROM_i2cADDR?: number): oledclass {
 
         return new oledclass(pADDR, (pInvert ? true : false), (pFlip ? true : false), (ck ? true : false),
             (pEEPROM_Startadresse == undefined ? eEEPROM_Startadresse.F800 : pEEPROM_Startadresse),
@@ -57,7 +57,8 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
             this.i2cCheck = ck
             this.startadresse_EEPROM = pEEPROM_Startadresse
             this.i2cADDR_EEPROM = pEEPROM_i2cADDR
-            //this.i2cError = 0 // Reset Fehlercode
+            this.i2cError_OLED = 0 // Reset Fehlercode
+            this.i2cError_EEPROM = 0 // Reset Fehlercode
             this.init(pInvert, pFlip)
         }
 
@@ -152,7 +153,13 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
                 this.i2cWriteBuffer_OLED(bu, true) // Clear Screen
             }
 
+            // Set display ON
+            bu = Buffer.create(2)
+            bu.setUint8(0, eCONTROL.x80_1Com) // CONTROL+1Command
+            bu.setUint8(1, 0xAF) // Set display ON
+            this.i2cWriteBuffer_OLED(bu)
 
+            control.waitMicros(100000) // 100ms Delay Recommended
         }
 
         // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"

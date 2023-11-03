@@ -222,13 +222,6 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
     // ========== group="OLED 16x8 Display Text anzeigen"
-    /* 
-        export enum eAlign {
-            //% block="linksbündig"
-            links,
-            //% block="rechtsbündig"
-            rechts
-        } */
 
     //% deprecated=true
     //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"

@@ -303,6 +303,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
 
+    //% deprecated=true
     //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
     //% block="i2c %pADDR Cursor Zeile %row von %col" weight=6
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -329,6 +330,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         //                    0x40               // CONTROL+Display Data
     }
 
+    //% deprecated=true
     //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
     //% block="i2c %pADDR Text %pText" weight=4
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -354,6 +356,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // ========== group="kopiert 1024 Byte vom EEPROM auf ein Display (Text, Bild)"
 
+    //% deprecated=true
     //% group="kopiert 1024 Byte vom EEPROM auf ein Display (Text, Bild)"
     //% block="i2c %pADDR Display 16x8 füllen %pEEPROM_Startadresse || von Zeile %vonZeile bis Zeile %bisZeile" weight=1
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -396,19 +399,20 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     // ========== advanced=true
 
     // ========== group="Display Command"
-
-    export enum eDisplayCommand {
-        //% block="AF AE Set Display ON/OFF"
-        ON,
-        //% block="A7 A6 Set Normal/Inverse Display"
-        INVERS,
-        //% block="A0 A1 Set Segment Remap"
-        FLIP,
-        //% block="C0 C8 Set COM Output Scan Direction"
-        REMAP,
-        //% block="A4 A5 Entire Display"
-        ENTIRE_ON
-    }
+    /* 
+        export enum eDisplayCommand {
+            //% block="AF AE Set Display ON/OFF"
+            ON,
+            //% block="A7 A6 Set Normal/Inverse Display"
+            INVERS,
+            //% block="A0 A1 Set Segment Remap"
+            FLIP,
+            //% block="C0 C8 Set COM Output Scan Direction"
+            REMAP,
+            //% block="A4 A5 Entire Display"
+            ENTIRE_ON
+        } */
+    //% deprecated=true
     //% group="Display Command"
     //% block="i2c %pADDR Display Command %pDisplayCommand %pON" advanced=true
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -492,6 +496,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     // blockId=oledssd1315_text block="%s" weight=6
     //export function oledssd1315_text(s: string): string { return s }
 
+    //% deprecated=true
     //% group="Text, Logik" advanced=true
     //% block="%i0 zwischen %i1 und %i2" weight=4
     export function between(i0: number, i1: number, i2: number): boolean {
@@ -500,11 +505,8 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // ========== group="i2c Adressen"
 
-    // blockId=oledssd1315_eADDR
-    // group="i2c Adressen" advanced=true
-    // block="%pADDR" weight=5
-    //export function oledssd1315_eADDR(pADDR: eADDR): number { return pADDR }
 
+    //% deprecated=true
     //% group="i2c Adressen" advanced=true
     //% block="i2c Fehlercode %pADDR" weight=4
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -512,19 +514,12 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         return (pADDR == eADDR.OLED_16x8_x3D ? n_i2cError_x3D : n_i2cError_x3C)
     }
 
-    //% blockId=oledssd1315_eADDR_EEPROM block="%p" 
-    //% group="i2c Adressen" advanced=true
-    //% block="%pADDR" weight=3
-    //export function oledssd1315_eADDR_EEPROM(pADDR_EEPROM: eADDR_EEPROM): number { return pADDR_EEPROM }
 
+    //% deprecated=true
     //% group="i2c Adressen" advanced=true
     //% block="i2c Fehlercode EEPROM" weight=2
     export function i2cError_EEPROM() { return n_i2cError_x50 }
 
-    //% group="i2c Adressen" advanced=true
-    //% block="Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)" weight=2
-    //export function i2cError() { return oledssd1315_i2cWriteBufferError }
-    //let oledssd1315_i2cWriteBufferError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
 
     function i2cWriteBuffer(pADDR: number, buf: Buffer, repeat: boolean = false) {

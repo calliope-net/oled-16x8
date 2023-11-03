@@ -39,27 +39,27 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // die zum Modul gehörende Startadresse der Zeichen im EEPROM
     //function stAdr(pADDR: eADDR) { return (pADDR == eADDR.OLED_16x8_x3D ? oledssd1315_0x3D_EEPROM_Startadresse : oledssd1315_0x3C_EEPROM_Startadresse) }
-/* 
-    enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
-        // CONTROL ist immer das 1. Byte im Buffer
-        x00_xCom = 0x00, // im selben Buffer folgen nur Command Bytes ohne CONTROL dazwischen
-        x80_1Com = 0x80, // im selben Buffer nach jedem Command ein neues CONTROL [0x00 | 0x80 | 0x40]
-        x40_Data = 0x40  // im selben Buffer folgen nur Display-Data Bytes ohne CONTROL dazwischen
-    }
-
-    export enum eCommand {
-        A0_SEGMENT_REMAP = 0xA0, // column address 0 is mapped to SEG0 (RESET) // using 0xA0 will flip screen
-        A1_SEGMENT_REMAP = 0xA1, // column address 127 is mapped to SEG0
-        A4_ENTIRE_DISPLAY_ON = 0xA4,
-        A5_RAM_CONTENT_DISPLAY = 0xA5,
-        A6_NORMAL_DISPLAY = 0xA6, // invert Hintergrund schwarz
-        A7_INVERT_DISPLAY = 0xA7, // invert Hintergrund leuchtet
-        AE_DISPLAY_OFF = 0xAE,
-        AF_DISPLAY_ON = 0xAF,
-        C0_COM_SCAN_INC = 0xC0, // COM Output Scan Direction
-        C8_COM_SCAN_DEC = 0xC8, // remapped mode Scan from COM[N-1] to COM0
-    }
- */
+    /* 
+        enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
+            // CONTROL ist immer das 1. Byte im Buffer
+            x00_xCom = 0x00, // im selben Buffer folgen nur Command Bytes ohne CONTROL dazwischen
+            x80_1Com = 0x80, // im selben Buffer nach jedem Command ein neues CONTROL [0x00 | 0x80 | 0x40]
+            x40_Data = 0x40  // im selben Buffer folgen nur Display-Data Bytes ohne CONTROL dazwischen
+        }
+    
+        export enum eCommand {
+            A0_SEGMENT_REMAP = 0xA0, // column address 0 is mapped to SEG0 (RESET) // using 0xA0 will flip screen
+            A1_SEGMENT_REMAP = 0xA1, // column address 127 is mapped to SEG0
+            A4_ENTIRE_DISPLAY_ON = 0xA4,
+            A5_RAM_CONTENT_DISPLAY = 0xA5,
+            A6_NORMAL_DISPLAY = 0xA6, // invert Hintergrund schwarz
+            A7_INVERT_DISPLAY = 0xA7, // invert Hintergrund leuchtet
+            AE_DISPLAY_OFF = 0xAE,
+            AF_DISPLAY_ON = 0xAF,
+            C0_COM_SCAN_INC = 0xC0, // COM Output Scan Direction
+            C8_COM_SCAN_DEC = 0xC8, // remapped mode Scan from COM[N-1] to COM0
+        }
+     */
 
     // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
 
@@ -222,14 +222,15 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
     // ========== group="OLED 16x8 Display Text anzeigen"
-/* 
-    export enum eAlign {
-        //% block="linksbündig"
-        links,
-        //% block="rechtsbündig"
-        rechts
-    } */
+    /* 
+        export enum eAlign {
+            //% block="linksbündig"
+            links,
+            //% block="rechtsbündig"
+            rechts
+        } */
 
+    //% deprecated=true
     //% group="Text anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
     //% block="i2c %pADDR Text 16x8 Zeile %row von %col bis %end %pText || %pAlign" weight=8
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -261,6 +262,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         }
     }
 
+    //% deprecated=true
     //% group="Text 8x16 anzeigen (Zeichensatz muss im EEPROM programmiert sein)"
     //% block="i2c %pADDR Text 8x16 Zeile %row von %col bis %end %pText || %pAlign" weight=7
     //% pADDR.shadow="oledssd1315_eADDR"
@@ -486,9 +488,9 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
     // ========== group="Text, Logik"
 
-    //% group="Text, Logik" advanced=true
-    //% blockId=oledssd1315_text block="%s" weight=6
-    export function oledssd1315_text(s: string): string { return s }
+    // group="Text, Logik" advanced=true
+    // blockId=oledssd1315_text block="%s" weight=6
+    //export function oledssd1315_text(s: string): string { return s }
 
     //% group="Text, Logik" advanced=true
     //% block="%i0 zwischen %i1 und %i2" weight=4

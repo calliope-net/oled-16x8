@@ -1,6 +1,5 @@
 
 //% color=#0000BF icon="\uf108" block="OLED 16x8" weight=20
-//% groups='["beim Start"]'
 namespace oledssd1315
 /* 230908 231011 https://github.com/calliope-net/oled-16x8
 
@@ -16,25 +15,44 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
 
 OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 */ {
-    //% group="beim Start"
-    //% block="i2c %pADDR beim Start || i2c-Check %ck"
+    export enum eADDR { OLED_16x8_x3C = 0x3C, OLED_16x8_x3D = 0x3D }
+    export enum eADDR_EEPROM { EEPROM_x50 = 0x50 }
+    export enum eEEPROM_Startadresse { F800 = 0xF800, FC00 = 0xFC00, F000 = 0xF000, F400 = 0xF400 }
+
+    //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
+    //% block="i2c %pADDR beim Start || invert %pInvert drehen %pFlip i2c-Check %ck EEPROM: Zeichensatz %pEEPROM_Startadresse i2c %pEEPROM_i2cADDR"
+    //% pADDR.shadow="oledssd1315_eADDR"
+    //% pInvert.shadow="toggleOnOff" pInvert.defl=false
+    //% pFlip.shadow="toggleOnOff" pFlip.defl=false
     //% ck.shadow="toggleOnOff" ck.defl=1
+    //% pEEPROM_Startadresse.shadow="oledssd1315_eEEPROM_Startadresse"
+    //% pEEPROM_i2cADDR.shadow="oledssd1315_eADDR_EEPROM"
     //% blockSetVariable=OLED16x8
-    export function beimStart(pADDR: eADDR, ck?: boolean): oledclass {
-        return new oledclass(pADDR, (ck ? true : false)) // optionaler boolean Parameter kann undefined sein
+    export function beimStart(pADDR: number, pInvert?: boolean, pFlip?: boolean, ck?: boolean,
+        pEEPROM_Startadresse?: number, pEEPROM_i2cADDR?: number): oledclass {
+
+        return new oledclass(pADDR, (pInvert ? true : false), (pFlip ? true : false), (ck ? true : false),
+            pEEPROM_Startadresse, pEEPROM_i2cADDR) // optionaler boolean Parameter kann undefined sein
     }
 
 
     export class oledclass {
-        private readonly i2cADDR: eADDR
+        private readonly i2cADDR: number
         private readonly i2cCheck: boolean // i2c-Check
+        private readonly pEEPROM_i2cADDR: number
+        private readonly pEEPROM_Startadresse: number
+
         private i2cError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
-        
-        constructor(pADDR: eADDR, ck: boolean) {
+
+        constructor(pADDR: number, pInvert: boolean, pFlip: boolean, ck: boolean,
+            pEEPROM_Startadresse: number, pEEPROM_i2cADDR: number) {
+
             this.i2cADDR = pADDR
             this.i2cCheck = ck
+            this.pEEPROM_Startadresse = pEEPROM_Startadresse
+            this.pEEPROM_i2cADDR = pEEPROM_i2cADDR
             this.i2cError = 0 // Reset Fehlercode
-            //this.i2cRESET_OUTPUTS()
+            this.init(pInvert, pFlip)
         }
 
         //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
@@ -46,8 +64,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
         //% pEEPROM_Startadresse.shadow="oledssd1315_eEEPROM_Startadresse"
         //% pADDR_EEPROM.shadow="oledssd1315_eADDR_EEPROM"
         //% inlineInputMode=inline
-        init(pADDR: number, pInvert?: boolean, pFlip?: boolean, ck?: boolean,
-            pEEPROM_Startadresse?: number, pADDR_EEPROM?: number): void {
+        init(pInvert?: boolean, pFlip?: boolean): void {
 
             //if (!between(pADDR, eADDR.OLED_16x8_x3C, eADDR.OLED_16x8_x3D)) {
             //    basic.showString("nur x3C oder x3D ist gültig")
@@ -166,11 +183,28 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
                 this.i2cError = pins.i2cWriteBuffer(this.i2cADDR, buf, repeat)
             //else { } // n_i2cCheck=true und n_i2cError != 0: weitere i2c Aufrufe blockieren
         }
-    }
+    } // class oledclass
+
+    // namespace oledssd1315
+
     enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s
         // CONTROL ist immer das 1. Byte im Buffer
         x00_xCom = 0x00, // im selben Buffer folgen nur Command Bytes ohne CONTROL dazwischen
         x80_1Com = 0x80, // im selben Buffer nach jedem Command ein neues CONTROL [0x00 | 0x80 | 0x40]
         x40_Data = 0x40  // im selben Buffer folgen nur Display-Data Bytes ohne CONTROL dazwischen
     }
-}
+
+
+
+    // ========== blockId=oledssd1315_
+
+    //% blockId=oledssd1315_eADDR block="%pADDR" blockHidden=true
+    export function oledssd1315_eADDR(pADDR: eADDR): number { return pADDR }
+
+    //% blockId=oledssd1315_eADDR_EEPROM block="%pADDR" blockHidden=true
+    export function oledssd1315_eADDR_EEPROM(pADDR: eADDR_EEPROM): number { return pADDR }
+
+    //% blockId=oledssd1315_eEEPROM_Startadresse block="%p" blockHidden=true
+    export function oledssd1315_eEEPROM_Startadresse(p: eEEPROM_Startadresse): number { return p }
+
+} // oledclass.ts

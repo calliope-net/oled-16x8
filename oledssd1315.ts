@@ -16,18 +16,20 @@ https://cdn-shop.adafruit.com/datasheets/UG-2864HSWEG01.pdf (Seite 15, 20 im pdf
 OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 */ {
     // For the SSD1315, the slave address is either "b0111100" or "b0111101" by changing the SA0 to LOW or HIGH (D/C pin acts as SA0).
-    export enum eADDR { OLED_16x8_x3C = 0x3C, OLED_16x8_x3D = 0x3D }
+    //export enum eADDR { OLED_16x8_x3C = 0x3C, OLED_16x8_x3D = 0x3D }
+    //export enum eADDR_EEPROM { EEPROM_x50 = 0x50 }
+
+
     let n_i2cCheck: boolean = false // i2c-Check
     let n_i2cError_x3C: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
     let n_i2cError_x3D: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
-    export enum eADDR_EEPROM { EEPROM_x50 = 0x50 }
     let n_i2cError_x50: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
     //export enum eStartAdresse { F800 = 0xF800, FC00 = 0xFC00, F000 = 0xF000, F400 = 0xF400 }
-    export enum eEEPROM_Startadresse { F800 = 0xF800, FC00 = 0xFC00, F000 = 0xF000, F400 = 0xF400 }
+    //export enum eEEPROM_Startadresse { F800 = 0xF800, FC00 = 0xFC00, F000 = 0xF000, F400 = 0xF400 }
     //% blockId=oledssd1315_eEEPROM_Startadresse block="%p" blockHidden=true
-    export function oledssd1315_eEEPROM_Startadresse(p: eEEPROM_Startadresse): number { return p }
+    //export function oledssd1315_eEEPROM_Startadresse(p: eEEPROM_Startadresse): number { return p }
 
 
     // Variablen im namespace oledssd1315
@@ -494,24 +496,24 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     }
 
     // ========== group="i2c Adressen"
-
+/* 
     //% blockId=oledssd1315_eADDR
     //% group="i2c Adressen" advanced=true
     //% block="%pADDR" weight=5
     export function oledssd1315_eADDR(pADDR: eADDR): number { return pADDR }
-
+ */
     //% group="i2c Adressen" advanced=true
     //% block="i2c Fehlercode %pADDR" weight=4
     //% pADDR.shadow="oledssd1315_eADDR"
     export function i2cError_OLED(pADDR: number) {
         return (pADDR == eADDR.OLED_16x8_x3D ? n_i2cError_x3D : n_i2cError_x3C)
     }
-
+/* 
     //% blockId=oledssd1315_eADDR_EEPROM block="%p" 
     //% group="i2c Adressen" advanced=true
     //% block="%pADDR" weight=3
     export function oledssd1315_eADDR_EEPROM(pADDR_EEPROM: eADDR_EEPROM): number { return pADDR_EEPROM }
-
+ */
     //% group="i2c Adressen" advanced=true
     //% block="i2c Fehlercode EEPROM" weight=2
     export function i2cError_EEPROM() { return n_i2cError_x50 }

@@ -36,24 +36,31 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     }
 
 
-    export class oledclass {
-        private readonly i2cADDR: number
-        private readonly i2cCheck: boolean // i2c-Check
-        private readonly pEEPROM_i2cADDR: number
-        private readonly pEEPROM_Startadresse: number
 
-        private i2cError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
+    // ========== class oledclass
+
+    export class oledclass {
+        private readonly i2cADDR_OLED: number
+        private readonly i2cCheck: boolean // i2c-Check
+        private readonly i2cADDR_EEPROM: number
+        private readonly startadresse_EEPROM: number
+
+        private i2cError_OLED: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
+        private i2cError_EEPROM: number = 0
 
         constructor(pADDR: number, pInvert: boolean, pFlip: boolean, ck: boolean,
             pEEPROM_Startadresse: number, pEEPROM_i2cADDR: number) {
 
-            this.i2cADDR = pADDR
+            this.i2cADDR_OLED = pADDR
             this.i2cCheck = ck
-            this.pEEPROM_Startadresse = pEEPROM_Startadresse
-            this.pEEPROM_i2cADDR = pEEPROM_i2cADDR
-            this.i2cError = 0 // Reset Fehlercode
+            this.startadresse_EEPROM = pEEPROM_Startadresse
+            this.i2cADDR_EEPROM = pEEPROM_i2cADDR
+            //this.i2cError = 0 // Reset Fehlercode
             this.init(pInvert, pFlip)
         }
+
+
+        // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
 
         //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
         //% block="init %OLED16x8 || invert %pInvert drehen %pFlip" weight=8
@@ -118,7 +125,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
             //bu.setUint8(offset++, 0xAF)  // Set display ON
 
-            this.i2cWriteBuffer(bu) // nur 1 Buffer wird gesendet
+            this.i2cWriteBuffer_OLED(bu) // nur 1 Buffer wird gesendet
 
 
             bu = Buffer.create(135)
@@ -140,21 +147,98 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
                 bu.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
                 // sendet den selben Buffer 8 Mal mit Änderung an 1 Byte
                 // true gibt den i2c Bus dazwischen nicht für andere Geräte frei
-                this.i2cWriteBuffer(bu, true) // Clear Screen
+                this.i2cWriteBuffer_OLED(bu, true) // Clear Screen
             }
 
 
         }
 
-        private i2cWriteBuffer(buf: Buffer, repeat: boolean = false) { // repeat funktioniert nicht
-            if (this.i2cError == 0) { // vorher kein Fehler
-                this.i2cError = pins.i2cWriteBuffer(this.i2cADDR, buf, repeat)
-                if (this.i2cCheck && this.i2cError != 0)  // vorher kein Fehler, wenn (n_i2cCheck=true): beim 1. Fehler anzeigen
-                    basic.showString(Buffer.fromArray([this.i2cADDR]).toHex()) // zeige fehlerhafte i2c-Adresse als HEX
+        // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
+
+
+        //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
+        //% block="Display %OLED16x8 löschen || von Zeile %vonZeile bis Zeile %bisZeile mit Bitmuster %charcode" weight=2
+        //% pADDR.shadow="oledssd1315_eADDR"
+        //% vonZeile.min=0 vonZeile.max=7 vonZeile.defl=0
+        //% bisZeile.min=0 bisZeile.max=7 bisZeile.defl=7
+        //% charcode.min=0 charcode.max=255 charcode.defl=0
+        //% inlineInputMode=inline
+        clearScreen(vonZeile?: number, bisZeile?: number, charcode?: number) {
+            if (between(vonZeile, 0, 7) && between(bisZeile, 0, 7)) {
+                let bu = Buffer.create(135)
+                let offset = this.setCursorBuffer6(bu, 0, 0, 0)
+                bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL+DisplayData
+                bu.fill(charcode & 0xFF, offset++, 128)   // 128 Byte füllen eine Zeile pixelweise
+
+                for (let page = vonZeile; page <= bisZeile; page++) {
+                    bu.setUint8(1, 0xB0 | page) // an offset=1 steht die page number (Zeile 0-7)
+                    // sendet den selben Buffer 8 Mal mit Änderung an 1 Byte
+                    // true gibt den i2c Bus dazwischen nicht für andere Geräte frei
+                    this.i2cWriteBuffer_OLED(bu, page < bisZeile) // Clear Screen
+                }
+                control.waitMicros(100000) // 100ms Delay Recommended
+            }
+        }
+
+
+
+
+
+
+
+        // ========== group="i2c Fehlercode"
+
+        //% group="i2c Fehlercode" advanced=true
+        //% block="%OLED16x8 i2c Fehlercode"
+        geti2cError() { return this.i2cError_OLED }
+
+
+
+        // ========== private
+
+        private setCursorBuffer6(bu: Buffer, offset: number, row: number, col: number) {
+            // schreibt in den Buffer ab offset 6 Byte (CONTROL und Command für setCursor)
+            // Buffer muss vorher die richtige Länge haben
+            bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+            bu.setUint8(offset++, 0xB0 | row & 0x07)      // page number 0-7 B0-B7
+            bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+            bu.setUint8(offset++, 0x00 | col << 3 & 0x0F) // (col % 16) lower start column address 0x00-0x0F 4 Bit
+            bu.setUint8(offset++, eCONTROL.x80_1Com) // CONTROL+1Command
+            bu.setUint8(offset++, 0x10 | col >> 1 & 0x07) // (col >> 4) upper start column address 0x10-0x17 3 Bit
+            return offset
+            //                    0x40               // CONTROL+Display Data
+        }
+
+
+
+        // ========== private i2cWriteBuffer i2cReadBuffer
+
+        private i2cWriteBuffer_OLED(buf: Buffer, repeat: boolean = false) {
+            if (this.i2cError_OLED == 0) { // vorher kein Fehler
+                this.i2cError_OLED = pins.i2cWriteBuffer(this.i2cADDR_OLED, buf, repeat)
+                if (this.i2cCheck && this.i2cError_OLED != 0)  // vorher kein Fehler, wenn (n_i2cCheck=true): beim 1. Fehler anzeigen
+                    basic.showString(Buffer.fromArray([this.i2cADDR_OLED]).toHex()) // zeige fehlerhafte i2c-Adresse als HEX
             } else if (!this.i2cCheck)  // vorher Fehler, aber ignorieren (n_i2cCheck=false): i2c weiter versuchen
-                this.i2cError = pins.i2cWriteBuffer(this.i2cADDR, buf, repeat)
+                this.i2cError_OLED = pins.i2cWriteBuffer(this.i2cADDR_OLED, buf, repeat)
             //else { } // n_i2cCheck=true und n_i2cError != 0: weitere i2c Aufrufe blockieren
         }
+
+        private i2cWriteBuffer_EEPROM(buf: Buffer, repeat: boolean = false) {
+            if (this.i2cError_EEPROM == 0) { // vorher kein Fehler
+                this.i2cError_EEPROM = pins.i2cWriteBuffer(this.i2cADDR_EEPROM, buf, repeat)
+                if (this.i2cCheck && this.i2cError_EEPROM != 0)  // vorher kein Fehler, wenn (n_i2cCheck=true): beim 1. Fehler anzeigen
+                    basic.showString(Buffer.fromArray([this.i2cADDR_EEPROM]).toHex()) // zeige fehlerhafte i2c-Adresse als HEX
+            } else if (!this.i2cCheck)  // vorher Fehler, aber ignorieren (n_i2cCheck=false): i2c weiter versuchen
+                this.i2cError_EEPROM = pins.i2cWriteBuffer(this.i2cADDR_EEPROM, buf, repeat)
+        }
+
+        private i2cReadBuffer_EEPROM(size: number, repeat: boolean = false): Buffer {
+            if (!this.i2cCheck || this.i2cError_EEPROM == 0)
+                return pins.i2cReadBuffer(this.i2cADDR_EEPROM, size, repeat)
+            else
+                return Buffer.create(size)
+        }
+
     } // class oledclass
 
     // namespace oledssd1315
@@ -169,14 +253,14 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
 
 
     // ========== blockId=oledssd1315_
-    
-        //% blockId=oledssd1315_eADDR block="%pADDR" blockHidden=true
-        export function oledssd1315_eADDR(pADDR: eADDR): number { return pADDR }
-    
-        //% blockId=oledssd1315_eADDR_EEPROM block="%pADDR" blockHidden=true
-        export function oledssd1315_eADDR_EEPROM(pADDR: eADDR_EEPROM): number { return pADDR }
-    
-        //% blockId=oledssd1315_eEEPROM_Startadresse block="%p" blockHidden=true
-        export function oledssd1315_eEEPROM_Startadresse(p: eEEPROM_Startadresse): number { return p }
-    
+
+    //% blockId=oledssd1315_eADDR block="%pADDR" blockHidden=true
+    export function oledssd1315_eADDR(pADDR: eADDR): number { return pADDR }
+
+    //% blockId=oledssd1315_eADDR_EEPROM block="%pADDR" blockHidden=true
+    export function oledssd1315_eADDR_EEPROM(pADDR: eADDR_EEPROM): number { return pADDR }
+
+    //% blockId=oledssd1315_eEEPROM_Startadresse block="%p" blockHidden=true
+    export function oledssd1315_eEEPROM_Startadresse(p: eEEPROM_Startadresse): number { return p }
+
 } // oledclass.ts

@@ -195,6 +195,7 @@ OLED Display mit EEPROM neu programmiert von Lutz Elßner im September 2023
     // ========== group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
 
 
+    //% deprecated=true
     //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
     //% block="i2c %pADDR Display löschen || von Zeile %vonZeile bis Zeile %bisZeile mit Bitmuster %charcode" weight=2
     //% pADDR.shadow="oledssd1315_eADDR"

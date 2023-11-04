@@ -21,7 +21,7 @@ namespace oledssd1315 {
             case 0x70: { charCodeArray = x70; break; }
             //default: { charCodeArray.length = 0 }
         }
-        if (charCodeArray.length == 8)
+        if (charCodeArray.length == 16)
             return Buffer.fromUTF8(charCodeArray.get(pCharCode & 0x0F))
         else
             return Buffer.fromUTF8("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF")

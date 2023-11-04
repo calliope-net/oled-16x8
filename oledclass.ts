@@ -328,8 +328,10 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
         }
 
 
-        //% group="Display Command"
-        //% block="16x8 %OLED16x8 Display Command %pDisplayCommand %pON" advanced=true
+        // ========== group="Display Command" advanced=true
+
+        //% group="Display Command" advanced=true
+        //% block="Display %OLED16x8 Command %pDisplayCommand %pON" weight=6
         //% pON.shadow="toggleOnOff"
         displayCommand(pDisplayCommand: eDisplayCommand, pON: boolean) {
             let bu = Buffer.create(2)
@@ -344,14 +346,12 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
             this.i2cWriteBuffer_OLED(bu)
         }
 
-
-        //% group="Display Command"
-        //% block="%OLED16x8 Zeichen %pZeichenDrehen drehen" advanced=true
+        //% group="Display Command" advanced=true
+        //% block="Zeichen %OLED16x8 %pZeichenDrehen" weight=4
         zeichenDrehen(pZeichenDrehen: eZeichenDrehen) { this.qZeichenDrehen = pZeichenDrehen }
 
 
-
-        // ========== group="i2c Fehlercode"
+        // ========== group="i2c Fehlercode" advanced=true
 
         //% group="i2c Fehlercode" advanced=true
         //% block="%OLED16x8 i2c Fehlercode OLED" weight=4
@@ -441,7 +441,19 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
     // namespace oledssd1315
 
 
-    export enum eZeichenDrehen { nicht, rechts, halb }
+    // ========== group="Text" advanced=true
+
+    //% group="Text" advanced=true
+    //% block="kehre %pText um"
+    //% pText.shadow="oledssd1315_text"
+    export function kehreum(pText: any): string {
+        let text: string = convertToText(pText)
+        let r: string = ""
+        for (let j = 0; j < text.length; j++) 
+            r = text.charAt(j) + r
+        return r
+    }
+
 
     function drehen(b0: Buffer, pDrehen: eZeichenDrehen) { // Buffer mit 8 Byte
         let b1 = Buffer.create(8)
@@ -450,6 +462,19 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
         switch (pDrehen) {
             case eZeichenDrehen.nicht: {
                 return b0
+            }
+            case eZeichenDrehen.links: {
+                for (let i = 0; i <= 7; i++) { // 8x8 Bit 1/4 nach links drehen
+                    if ((b0.getUint8(7 - i) & 2 ** 7) != 0) { b1.setUint8(7, b1.getUint8(7) | 2 ** i) }
+                    if ((b0.getUint8(7 - i) & 2 ** 6) != 0) { b1.setUint8(6, b1.getUint8(6) | 2 ** i) }
+                    if ((b0.getUint8(7 - i) & 2 ** 5) != 0) { b1.setUint8(5, b1.getUint8(5) | 2 ** i) }
+                    if ((b0.getUint8(7 - i) & 2 ** 4) != 0) { b1.setUint8(4, b1.getUint8(4) | 2 ** i) }
+                    if ((b0.getUint8(7 - i) & 2 ** 3) != 0) { b1.setUint8(3, b1.getUint8(3) | 2 ** i) }
+                    if ((b0.getUint8(7 - i) & 2 ** 2) != 0) { b1.setUint8(2, b1.getUint8(2) | 2 ** i) }
+                    if ((b0.getUint8(7 - i) & 2 ** 1) != 0) { b1.setUint8(1, b1.getUint8(1) | 2 ** i) }
+                    if ((b0.getUint8(7 - i) & 2 ** 0) != 0) { b1.setUint8(0, b1.getUint8(0) | 2 ** i) }
+                }
+                return b1
             }
             case eZeichenDrehen.rechts: {
                 for (let i = 0; i <= 7; i++) { // 8x8 Bit 1/4 nach rechts drehen
@@ -464,16 +489,16 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
                 }
                 return b1
             }
-            case eZeichenDrehen.halb: {
-                for (let b0offset = 0; b0offset <= 7; b0offset++) { // 8x8 Bit 1/2 nach rechts drehen
-                    if ((b0.getUint8(b0offset) & 2 ** 0) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 0) }
-                    if ((b0.getUint8(b0offset) & 2 ** 1) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 1) }
-                    if ((b0.getUint8(b0offset) & 2 ** 2) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 2) }
-                    if ((b0.getUint8(b0offset) & 2 ** 3) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 3) }
-                    if ((b0.getUint8(b0offset) & 2 ** 4) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 4) }
-                    if ((b0.getUint8(b0offset) & 2 ** 5) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 5) }
-                    if ((b0.getUint8(b0offset) & 2 ** 6) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 6) }
-                    if ((b0.getUint8(b0offset) & 2 ** 7) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 7) }
+            case eZeichenDrehen.spiegeln: {
+                for (let i = 0; i <= 7; i++) { // 8x8 Bit 1/2 nach rechts drehen
+                    if ((b0.getUint8(i) & 2 ** 0) != 0) { b1.setUint8(7 - i, b1.getUint8(7 - i) | 2 ** 0) }
+                    if ((b0.getUint8(i) & 2 ** 1) != 0) { b1.setUint8(7 - i, b1.getUint8(7 - i) | 2 ** 1) }
+                    if ((b0.getUint8(i) & 2 ** 2) != 0) { b1.setUint8(7 - i, b1.getUint8(7 - i) | 2 ** 2) }
+                    if ((b0.getUint8(i) & 2 ** 3) != 0) { b1.setUint8(7 - i, b1.getUint8(7 - i) | 2 ** 3) }
+                    if ((b0.getUint8(i) & 2 ** 4) != 0) { b1.setUint8(7 - i, b1.getUint8(7 - i) | 2 ** 4) }
+                    if ((b0.getUint8(i) & 2 ** 5) != 0) { b1.setUint8(7 - i, b1.getUint8(7 - i) | 2 ** 5) }
+                    if ((b0.getUint8(i) & 2 ** 6) != 0) { b1.setUint8(7 - i, b1.getUint8(7 - i) | 2 ** 6) }
+                    if ((b0.getUint8(i) & 2 ** 7) != 0) { b1.setUint8(7 - i, b1.getUint8(7 - i) | 2 ** 7) }
                 }
                 return b1
             }
@@ -481,6 +506,16 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
         }
     }
 
+    export enum eZeichenDrehen {
+        //%block="nicht drehen"
+        nicht,
+        //%block="nach links drehen"
+        links,
+        //%block="nach rechts drehen"
+        rechts,
+        //%block="spiegeln"
+        spiegeln
+    }
 
 
     export enum eCONTROL { // Co Continuation bit(7); D/C# Data/Command Selection bit(6); following by six "0"s

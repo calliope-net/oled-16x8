@@ -21,7 +21,7 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
     export enum eEEPROM_Startadresse { F800 = 0xF800, FC00 = 0xFC00, F000 = 0xF000, F400 = 0xF400 }
 
     //% group="OLED Display 0.96 + SparkFun Qwiic EEPROM Breakout - 512Kbit"
-    //% block="i2c %pADDR || invert %pInvert drehen %pFlip i2c-Check %ck EEPROM: Zeichensatz %pEEPROM_Startadresse i2c %pEEPROM_i2cADDR"
+    //% block="i2c %pADDR || invert %pInvert flip %pFlip i2c-Check %ck EEPROM: Zeichensatz %pEEPROM_Startadresse i2c %pEEPROM_i2cADDR"
     //% pADDR.shadow="oledssd1315_eADDR"
     //% pInvert.shadow="toggleOnOff"
     //% pFlip.shadow="toggleOnOff"
@@ -46,9 +46,10 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
 
     export class oledclass {
         private readonly i2cADDR_OLED: number
-        private readonly i2cCheck: boolean // i2c-Check
         private readonly i2cADDR_EEPROM: number
-        private readonly startadresse_EEPROM: number
+        private readonly i2cCheck: boolean // i2c-Check
+        private readonly qEEPROM_Startadresse: number
+        private qZeichenDrehen: eZeichenDrehen = eZeichenDrehen.nicht
 
         private i2cError_OLED: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
         private i2cError_EEPROM: number = 0
@@ -58,12 +59,13 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
 
             this.i2cADDR_OLED = pADDR
             this.i2cCheck = ck
-            this.startadresse_EEPROM = pEEPROM_Startadresse
+            this.qEEPROM_Startadresse = pEEPROM_Startadresse
             this.i2cADDR_EEPROM = pEEPROM_i2cADDR
             this.i2cError_OLED = 0 // Reset Fehlercode
             this.i2cError_EEPROM = 0 // Reset Fehlercode
+
             this.init(pInvert, pFlip)
-            this.getPixel8Byte(0x20, eDrehen.nicht)  // testet, ob EEPROM angeschlossen ist
+            this.getPixel8Byte(0x20)  // testet, ob EEPROM angeschlossen ist
         }
 
 
@@ -275,7 +277,7 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
 
                 for (let j = 0; j < text.length; j++) {
                     bu.setUint8(1, 0xB0 | (7 - (col + j)) & 0x07)      // page number 7-0 B7-B0
-                    bu.write(8, this.getPixel8Byte(text.charCodeAt(j), eDrehen.nicht))
+                    bu.write(8, this.getPixel8Byte(text.charCodeAt(j)))
 
                     this.i2cWriteBuffer_OLED(bu)
                 }
@@ -343,6 +345,9 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
         }
 
 
+        //% group="Display Command"
+        //% block="%OLED16x8 Zeichen %pZeichenDrehen drehen" advanced=true
+        zeichenDrehen(pZeichenDrehen: eZeichenDrehen) { this.qZeichenDrehen = pZeichenDrehen }
 
 
 
@@ -381,23 +386,23 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
             let font: string
             bu.setUint8(offset++, eCONTROL.x40_Data) // CONTROL Byte 0x40: Display Data
             for (let j = 0; j < pText.length; j++) {
-                bu.write(offset, this.getPixel8Byte(pText.charCodeAt(j), eDrehen.nicht))
+                bu.write(offset, this.getPixel8Byte(pText.charCodeAt(j)))
                 offset += 8
             }
             this.i2cWriteBuffer_OLED(bu)
             control.waitMicros(50)
         }
 
-        private getPixel8Byte(pCharCode: number, pDrehen: eDrehen) {
+        private getPixel8Byte(pCharCode: number) {//, pDrehen: eZeichenDrehen
             if (this.i2cError_EEPROM == 0) {
                 let bu = Buffer.create(2)
-                bu.setNumber(NumberFormat.UInt16BE, 0, this.startadresse_EEPROM + pCharCode * 8)
+                bu.setNumber(NumberFormat.UInt16BE, 0, this.qEEPROM_Startadresse + pCharCode * 8)
                 this.i2cWriteBuffer_EEPROM(bu, true)
 
-                return drehen(this.i2cReadBuffer_EEPROM(8), pDrehen)
+                return drehen(this.i2cReadBuffer_EEPROM(8), this.qZeichenDrehen)
             } else {
                 // wenn kein EEPROM angeschlossen, Zeichencode aus Array laden
-                return drehen(getPixel8ByteArray(pCharCode), pDrehen)
+                return drehen(getPixel8ByteArray(pCharCode), this.qZeichenDrehen)
             }
         }
 
@@ -436,17 +441,17 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
     // namespace oledssd1315
 
 
-    export enum eDrehen { nicht, viertel, halb }
+    export enum eZeichenDrehen { nicht, rechts, halb }
 
-    export function drehen(b0: Buffer, pDrehen: eDrehen) { // Buffer mit 8 Byte
+    function drehen(b0: Buffer, pDrehen: eZeichenDrehen) { // Buffer mit 8 Byte
         let b1 = Buffer.create(8)
         b1.fill(0b00000000)
 
         switch (pDrehen) {
-            case eDrehen.nicht: {
+            case eZeichenDrehen.nicht: {
                 return b0
             }
-            case eDrehen.viertel: {
+            case eZeichenDrehen.rechts: {
                 for (let i = 0; i <= 7; i++) { // 8x8 Bit 1/4 nach rechts drehen
                     if ((b0.getUint8(i) & 2 ** 0) != 0) { b1.setUint8(7, b1.getUint8(7) | 2 ** i) }
                     if ((b0.getUint8(i) & 2 ** 1) != 0) { b1.setUint8(6, b1.getUint8(6) | 2 ** i) }
@@ -459,7 +464,7 @@ Objektvariablen und Zeichensatz aus Arrays von calliope-net/oled-eeprom im Novem
                 }
                 return b1
             }
-            case eDrehen.halb: {
+            case eZeichenDrehen.halb: {
                 for (let b0offset = 0; b0offset <= 7; b0offset++) { // 8x8 Bit 1/2 nach rechts drehen
                     if ((b0.getUint8(b0offset) & 2 ** 0) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 0) }
                     if ((b0.getUint8(b0offset) & 2 ** 1) != 0) { b1.setUint8(7 - b0offset, b1.getUint8(7 - b0offset) | 2 ** 1) }

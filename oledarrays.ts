@@ -19,9 +19,12 @@ namespace oledssd1315 {
             case 0x50: { charCodeArray = x50; break; }
             case 0x60: { charCodeArray = x60; break; }
             case 0x70: { charCodeArray = x70; break; }
+            //default: { charCodeArray.length = 0 }
         }
-        //return Buffer.fromUTF8(charCodeArray.get(pCharCode & 0x0F))
-        return Buffer.fromUTF8(charCodeArray.get(pCharCode & 0x0F))
+        if (charCodeArray.length == 8)
+            return Buffer.fromUTF8(charCodeArray.get(pCharCode & 0x0F))
+        else
+            return Buffer.fromUTF8("\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF")
     }
 
 } // oledarrays.ts
